@@ -1,0 +1,1759 @@
+/**
+ * BuildingCare Lite — SaaS Admin UI
+ * Scoped to plugin pages only.
+ */
+
+/* ── Design tokens ───────────────────────────────────────────── */
+body.bcl-admin,
+body.toplevel_page_bcl-dashboard,
+body[class*="bcl-dashboard_page_"],
+body.post-type-bc_building,
+body.post-type-bc_flat,
+body.post-type-bc_resident,
+body.post-type-bc_bill,
+body.post-type-bc_expense,
+body.post-type-bc_recurring_expense {
+	--bcl-primary: #4f46e5;
+	--bcl-primary-hover: #4338ca;
+	--bcl-primary-soft: #eef2ff;
+	--bcl-bg: #f4f6fb;
+	--bcl-card: #ffffff;
+	--bcl-border: #e5e7eb;
+	--bcl-text: #111827;
+	--bcl-muted: #6b7280;
+	--bcl-success: #059669;
+	--bcl-success-soft: #ecfdf5;
+	--bcl-warning: #d97706;
+	--bcl-warning-soft: #fffbeb;
+	--bcl-danger: #dc2626;
+	--bcl-danger-soft: #fef2f2;
+	--bcl-info: #2563eb;
+	--bcl-info-soft: #eff6ff;
+	--bcl-radius-sm: 10px;
+	--bcl-radius: 14px;
+	--bcl-radius-lg: 16px;
+	--bcl-shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.05);
+	--bcl-shadow: 0 4px 16px rgba(15, 23, 42, 0.06);
+	--bcl-shadow-lg: 0 12px 32px rgba(15, 23, 42, 0.1);
+	--bcl-transition: 0.25s ease;
+}
+
+/* ── Canvas / reset WP chrome inside plugin scope ────────────── */
+body.bcl-admin #wpcontent,
+body.toplevel_page_bcl-dashboard #wpcontent,
+body[class*="bcl-dashboard_page_"] #wpcontent,
+body.post-type-bc_building #wpcontent,
+body.post-type-bc_flat #wpcontent,
+body.post-type-bc_resident #wpcontent,
+body.post-type-bc_bill #wpcontent,
+body.post-type-bc_expense #wpcontent,
+body.post-type-bc_recurring_expense #wpcontent {
+	background: var(--bcl-bg);
+}
+
+body.bcl-admin #wpbody-content,
+body.toplevel_page_bcl-dashboard #wpbody-content,
+body[class*="bcl-dashboard_page_"] #wpbody-content,
+body.post-type-bc_building #wpbody-content,
+body.post-type-bc_flat #wpbody-content,
+body.post-type-bc_resident #wpbody-content,
+body.post-type-bc_bill #wpbody-content,
+body.post-type-bc_expense #wpbody-content,
+body.post-type-bc_recurring_expense #wpbody-content {
+	padding-bottom: 40px;
+}
+
+body.bcl-admin .wrap,
+body.bcl-admin .bcl-wrap,
+body.toplevel_page_bcl-dashboard .wrap,
+body[class*="bcl-dashboard_page_"] .wrap,
+body.post-type-bc_building .wrap,
+body.post-type-bc_flat .wrap,
+body.post-type-bc_resident .wrap,
+body.post-type-bc_bill .wrap,
+body.post-type-bc_expense .wrap,
+body.post-type-bc_recurring_expense .wrap,
+body.toplevel_page_bcl-dashboard .bcl-wrap,
+body[class*="bcl-dashboard_page_"] .bcl-wrap,
+body.post-type-bc_building .bcl-wrap,
+body.post-type-bc_flat .bcl-wrap,
+body.post-type-bc_resident .bcl-wrap,
+body.post-type-bc_bill .bcl-wrap,
+body.post-type-bc_expense .bcl-wrap,
+body.post-type-bc_recurring_expense .bcl-wrap {
+	max-width: 95%;
+	margin: 0 auto;
+	padding: 24px 20px 32px;
+}
+
+/* ── Page titles ─────────────────────────────────────────────── */
+body.bcl-admin .wrap > h1,
+body.bcl-admin .bcl-wrap > h1,
+body.toplevel_page_bcl-dashboard .wrap > h1,
+body[class*="bcl-dashboard_page_"] .wrap > h1,
+body.post-type-bc_building .wrap > h1,
+body.post-type-bc_flat .wrap > h1,
+body.post-type-bc_resident .wrap > h1,
+body.post-type-bc_bill .wrap > h1,
+body.post-type-bc_expense .wrap > h1,
+body.post-type-bc_recurring_expense .wrap > h1,
+body.toplevel_page_bcl-dashboard .bcl-wrap > h1,
+body[class*="bcl-dashboard_page_"] .bcl-wrap > h1 {
+	font-size: 28px;
+	font-weight: 700;
+	letter-spacing: -0.03em;
+	color: var(--bcl-text);
+	margin: 0 0 8px;
+	padding: 0;
+	line-height: 1.2;
+}
+
+body.bcl-admin .bcl-subtitle,
+body.toplevel_page_bcl-dashboard .bcl-subtitle,
+body[class*="bcl-dashboard_page_"] .bcl-subtitle,
+body.post-type-bc_building .bcl-subtitle,
+body.post-type-bc_flat .bcl-subtitle,
+body.post-type-bc_resident .bcl-subtitle,
+body.post-type-bc_bill .bcl-subtitle,
+body.post-type-bc_expense .bcl-subtitle,
+body.post-type-bc_recurring_expense .bcl-subtitle {
+	color: var(--bcl-muted);
+	font-size: 15px;
+	margin: 0 0 24px;
+	line-height: 1.5;
+}
+
+/* ── Panels (Bills, Reports, etc.) ─────────────────────────────── */
+body.bcl-admin .bcl-panel-title,
+body.toplevel_page_bcl-dashboard .bcl-panel-title,
+body[class*="bcl-dashboard_page_"] .bcl-panel-title {
+	margin: 0 0 16px;
+	font-size: 17px;
+	font-weight: 700;
+	color: var(--bcl-text);
+	letter-spacing: -0.02em;
+	line-height: 1.3;
+}
+
+body.toplevel_page_bcl-dashboard .bcl-panel-header,
+body[class*="bcl-dashboard_page_"] .bcl-panel-header {
+	margin-bottom: 20px;
+}
+
+body.toplevel_page_bcl-dashboard .bcl-panel-header .bcl-panel-title,
+body[class*="bcl-dashboard_page_"] .bcl-panel-header .bcl-panel-title {
+	margin-bottom: 6px;
+}
+
+body.toplevel_page_bcl-dashboard .bcl-panel-desc,
+body[class*="bcl-dashboard_page_"] .bcl-panel-desc {
+	margin: 0;
+	color: var(--bcl-muted);
+	font-size: 14px;
+	line-height: 1.5;
+}
+
+body.bcl-admin .bcl-field-label,
+body.toplevel_page_bcl-dashboard .bcl-field-label,
+body[class*="bcl-dashboard_page_"] .bcl-field-label {
+	display: block;
+	margin: 0 0 6px;
+	font-size: 12px;
+	font-weight: 600;
+	color: var(--bcl-muted);
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+}
+
+/* ── Cards ───────────────────────────────────────────────────── */
+body.toplevel_page_bcl-dashboard .bcl-card,
+body[class*="bcl-dashboard_page_"] .bcl-card,
+body.toplevel_page_bcl-dashboard .bcl-balance-sheet,
+body[class*="bcl-dashboard_page_"] .bcl-balance-sheet,
+body.toplevel_page_bcl-dashboard .bcl-recent-transactions,
+body[class*="bcl-dashboard_page_"] .bcl-recent-transactions,
+body.bcl-admin .bcl-panel,
+body.toplevel_page_bcl-dashboard .bcl-panel,
+body[class*="bcl-dashboard_page_"] .bcl-panel,
+body.post-type-bc_building .postbox,
+body.post-type-bc_flat .postbox,
+body.post-type-bc_resident .postbox,
+body.post-type-bc_bill .postbox,
+body.post-type-bc_expense .postbox,
+body.post-type-bc_recurring_expense .postbox {
+	background: var(--bcl-card);
+	border: 1px solid var(--bcl-border);
+	border-radius: var(--bcl-radius-lg);
+	box-shadow: var(--bcl-shadow);
+	padding: 24px 28px;
+	transition: box-shadow var(--bcl-transition), transform var(--bcl-transition);
+}
+
+body.toplevel_page_bcl-dashboard .bcl-card:hover,
+body[class*="bcl-dashboard_page_"] .bcl-card:hover {
+	box-shadow: var(--bcl-shadow-lg);
+	transform: translateY(-1px);
+}
+
+body.toplevel_page_bcl-dashboard .bcl-dashboard-grid,
+body[class*="bcl-dashboard_page_"] .bcl-dashboard-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+	gap: 20px;
+	margin: 0 0 28px;
+}
+
+body.toplevel_page_bcl-dashboard .bcl-card h3,
+body[class*="bcl-dashboard_page_"] .bcl-card h3 {
+	margin: 0 0 10px;
+	font-size: 12px;
+	font-weight: 600;
+	color: var(--bcl-muted);
+	text-transform: uppercase;
+	letter-spacing: 0.06em;
+}
+
+body.toplevel_page_bcl-dashboard .bcl-stat-value,
+body[class*="bcl-dashboard_page_"] .bcl-stat-value {
+	margin: 0;
+	font-size: 28px;
+	font-weight: 700;
+	color: var(--bcl-text);
+	letter-spacing: -0.02em;
+}
+
+body.toplevel_page_bcl-dashboard .bcl-card-income .bcl-stat-value,
+body[class*="bcl-dashboard_page_"] .bcl-card-income .bcl-stat-value { color: var(--bcl-success); }
+body.toplevel_page_bcl-dashboard .bcl-card-expense .bcl-stat-value,
+body[class*="bcl-dashboard_page_"] .bcl-card-expense .bcl-stat-value { color: var(--bcl-danger); }
+body.toplevel_page_bcl-dashboard .bcl-card-balance .bcl-stat-value,
+body[class*="bcl-dashboard_page_"] .bcl-card-balance .bcl-stat-value { color: var(--bcl-info); }
+body.toplevel_page_bcl-dashboard .bcl-card-dues .bcl-stat-value,
+body[class*="bcl-dashboard_page_"] .bcl-card-dues .bcl-stat-value { color: var(--bcl-warning); }
+
+body.toplevel_page_bcl-dashboard .bcl-balance-sheet,
+body[class*="bcl-dashboard_page_"] .bcl-balance-sheet,
+body.toplevel_page_bcl-dashboard .bcl-recent-transactions,
+body[class*="bcl-dashboard_page_"] .bcl-recent-transactions {
+	margin-bottom: 28px;
+}
+
+body.toplevel_page_bcl-dashboard .bcl-balance-sheet h2,
+body[class*="bcl-dashboard_page_"] .bcl-balance-sheet h2,
+body.toplevel_page_bcl-dashboard .bcl-recent-transactions h2,
+body[class*="bcl-dashboard_page_"] .bcl-recent-transactions h2 {
+	margin: 0 0 8px;
+	font-size: 18px;
+	font-weight: 700;
+	color: var(--bcl-text);
+	letter-spacing: -0.02em;
+}
+
+body.bcl-admin .bcl-panel,
+body.toplevel_page_bcl-dashboard .bcl-panel,
+body[class*="bcl-dashboard_page_"] .bcl-panel {
+	margin: 0 0 24px;
+}
+
+/* ── Section filters / toolbars (legacy) ─────────────────────── */
+body.toplevel_page_bcl-dashboard .bcl-filters,
+body[class*="bcl-dashboard_page_"] .bcl-filters,
+body.toplevel_page_bcl-dashboard .bcl-inline-form,
+body[class*="bcl-dashboard_page_"] .bcl-inline-form {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 12px;
+	align-items: center;
+	margin: 0 0 24px;
+}
+
+body.toplevel_page_bcl-dashboard .bcl-inline-form,
+body[class*="bcl-dashboard_page_"] .bcl-inline-form {
+	background: var(--bcl-card);
+	border: 1px solid var(--bcl-border);
+	border-radius: var(--bcl-radius-lg);
+	padding: 20px 24px;
+	box-shadow: var(--bcl-shadow-sm);
+}
+
+body.toplevel_page_bcl-dashboard .bcl-inline-form label,
+body[class*="bcl-dashboard_page_"] .bcl-inline-form label {
+	font-weight: 600;
+	color: var(--bcl-text);
+	font-size: 14px;
+}
+
+/* ── Tables ──────────────────────────────────────────────────── */
+body.toplevel_page_bcl-dashboard table.widefat,
+body[class*="bcl-dashboard_page_"] table.widefat,
+body.post-type-bc_building table.widefat,
+body.post-type-bc_flat table.widefat,
+body.post-type-bc_resident table.widefat,
+body.post-type-bc_bill table.widefat,
+body.post-type-bc_expense table.widefat,
+body.post-type-bc_recurring_expense table.widefat,
+body.toplevel_page_bcl-dashboard .wp-list-table,
+body[class*="bcl-dashboard_page_"] .wp-list-table,
+body.post-type-bc_building .wp-list-table,
+body.post-type-bc_flat .wp-list-table,
+body.post-type-bc_resident .wp-list-table,
+body.post-type-bc_bill .wp-list-table,
+body.post-type-bc_expense .wp-list-table,
+body.post-type-bc_recurring_expense .wp-list-table {
+	width: 100%;
+	background: var(--bcl-card);
+	border: 1px solid var(--bcl-border) !important;
+	border-radius: var(--bcl-radius-lg);
+	box-shadow: var(--bcl-shadow);
+	border-collapse: separate;
+	border-spacing: 0;
+	overflow: hidden;
+}
+
+body.toplevel_page_bcl-dashboard table.widefat thead th,
+body[class*="bcl-dashboard_page_"] table.widefat thead th,
+body.post-type-bc_building .wp-list-table thead th,
+body.post-type-bc_flat .wp-list-table thead th,
+body.post-type-bc_resident .wp-list-table thead th,
+body.post-type-bc_bill .wp-list-table thead th,
+body.post-type-bc_expense .wp-list-table thead th,
+body.post-type-bc_recurring_expense .wp-list-table thead th,
+body.toplevel_page_bcl-dashboard .wp-list-table thead th,
+body[class*="bcl-dashboard_page_"] .wp-list-table thead th {
+	background: #f9fafb;
+	border-bottom: 1px solid var(--bcl-border);
+	color: var(--bcl-muted);
+	font-size: 12px;
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+	padding: 14px 18px;
+}
+
+body.toplevel_page_bcl-dashboard table.widefat tbody td,
+body[class*="bcl-dashboard_page_"] table.widefat tbody td,
+body.post-type-bc_building .wp-list-table tbody td,
+body.post-type-bc_flat .wp-list-table tbody td,
+body.post-type-bc_resident .wp-list-table tbody td,
+body.post-type-bc_bill .wp-list-table tbody td,
+body.post-type-bc_expense .wp-list-table tbody td,
+body.post-type-bc_recurring_expense .wp-list-table tbody td,
+body.toplevel_page_bcl-dashboard .wp-list-table tbody td,
+body[class*="bcl-dashboard_page_"] .wp-list-table tbody td {
+	padding: 16px 18px;
+	color: var(--bcl-text);
+	font-size: 14px;
+	border-top: 1px solid var(--bcl-border);
+	vertical-align: middle;
+}
+
+body.toplevel_page_bcl-dashboard table.widefat.striped > tbody > :nth-child(odd),
+body[class*="bcl-dashboard_page_"] table.widefat.striped > tbody > :nth-child(odd),
+body.post-type-bc_building .wp-list-table.striped > tbody > :nth-child(odd),
+body.post-type-bc_flat .wp-list-table.striped > tbody > :nth-child(odd),
+body.post-type-bc_resident .wp-list-table.striped > tbody > :nth-child(odd),
+body.post-type-bc_bill .wp-list-table.striped > tbody > :nth-child(odd),
+body.post-type-bc_expense .wp-list-table.striped > tbody > :nth-child(odd),
+body.post-type-bc_recurring_expense .wp-list-table.striped > tbody > :nth-child(odd) {
+	background-color: transparent;
+}
+
+body.toplevel_page_bcl-dashboard table.widefat tbody tr,
+body[class*="bcl-dashboard_page_"] table.widefat tbody tr,
+body.post-type-bc_building .wp-list-table tbody tr,
+body.post-type-bc_flat .wp-list-table tbody tr,
+body.post-type-bc_resident .wp-list-table tbody tr,
+body.post-type-bc_bill .wp-list-table tbody tr,
+body.post-type-bc_expense .wp-list-table tbody tr,
+body.post-type-bc_recurring_expense .wp-list-table tbody tr {
+	transition: background-color var(--bcl-transition);
+}
+
+body.toplevel_page_bcl-dashboard table.widefat tbody tr:hover,
+body[class*="bcl-dashboard_page_"] table.widefat tbody tr:hover,
+body.post-type-bc_building .wp-list-table tbody tr:hover,
+body.post-type-bc_flat .wp-list-table tbody tr:hover,
+body.post-type-bc_resident .wp-list-table tbody tr:hover,
+body.post-type-bc_bill .wp-list-table tbody tr:hover,
+body.post-type-bc_expense .wp-list-table tbody tr:hover,
+body.post-type-bc_recurring_expense .wp-list-table tbody tr:hover {
+	background-color: var(--bcl-primary-soft) !important;
+}
+
+body.toplevel_page_bcl-dashboard .bcl-total-row td,
+body[class*="bcl-dashboard_page_"] .bcl-total-row td {
+	border-top: 2px solid var(--bcl-border);
+	font-weight: 600;
+}
+
+body.toplevel_page_bcl-dashboard .tablenav,
+body[class*="bcl-dashboard_page_"] .tablenav,
+body.post-type-bc_building .tablenav,
+body.post-type-bc_flat .tablenav,
+body.post-type-bc_resident .tablenav,
+body.post-type-bc_bill .tablenav,
+body.post-type-bc_expense .tablenav,
+body.post-type-bc_recurring_expense .tablenav {
+	margin: 16px 0;
+	padding: 0;
+}
+
+body.toplevel_page_bcl-dashboard .tablenav .tablenav-pages,
+body[class*="bcl-dashboard_page_"] .tablenav .tablenav-pages {
+	color: var(--bcl-muted);
+}
+
+/* ── Forms ───────────────────────────────────────────────────── */
+body.bcl-admin input[type="text"],
+body.bcl-admin input[type="number"],
+body.bcl-admin input[type="email"],
+body.bcl-admin input[type="date"],
+body.bcl-admin input[type="month"],
+body.bcl-admin input[type="search"],
+body.bcl-admin input[type="url"],
+body.bcl-admin input[type="password"],
+body.bcl-admin select,
+body.bcl-admin textarea,
+body.toplevel_page_bcl-dashboard input[type="text"],
+body.toplevel_page_bcl-dashboard input[type="number"],
+body.toplevel_page_bcl-dashboard input[type="email"],
+body.toplevel_page_bcl-dashboard input[type="date"],
+body.toplevel_page_bcl-dashboard input[type="month"],
+body.toplevel_page_bcl-dashboard input[type="search"],
+body.toplevel_page_bcl-dashboard input[type="url"],
+body.toplevel_page_bcl-dashboard input[type="password"],
+body.toplevel_page_bcl-dashboard select,
+body.toplevel_page_bcl-dashboard textarea,
+body[class*="bcl-dashboard_page_"] input[type="text"],
+body[class*="bcl-dashboard_page_"] input[type="number"],
+body[class*="bcl-dashboard_page_"] input[type="email"],
+body[class*="bcl-dashboard_page_"] input[type="date"],
+body[class*="bcl-dashboard_page_"] input[type="month"],
+body[class*="bcl-dashboard_page_"] input[type="search"],
+body[class*="bcl-dashboard_page_"] input[type="url"],
+body[class*="bcl-dashboard_page_"] input[type="password"],
+body[class*="bcl-dashboard_page_"] select,
+body[class*="bcl-dashboard_page_"] textarea,
+body.post-type-bc_building input[type="text"],
+body.post-type-bc_building input[type="number"],
+body.post-type-bc_building input[type="email"],
+body.post-type-bc_building input[type="date"],
+body.post-type-bc_building select,
+body.post-type-bc_building textarea,
+body.post-type-bc_flat input[type="text"],
+body.post-type-bc_flat input[type="number"],
+body.post-type-bc_flat input[type="email"],
+body.post-type-bc_flat input[type="date"],
+body.post-type-bc_flat select,
+body.post-type-bc_flat textarea,
+body.post-type-bc_resident input[type="text"],
+body.post-type-bc_resident input[type="number"],
+body.post-type-bc_resident input[type="email"],
+body.post-type-bc_resident input[type="date"],
+body.post-type-bc_resident select,
+body.post-type-bc_resident textarea,
+body.post-type-bc_bill input[type="text"],
+body.post-type-bc_bill input[type="number"],
+body.post-type-bc_bill input[type="email"],
+body.post-type-bc_bill input[type="date"],
+body.post-type-bc_bill select,
+body.post-type-bc_bill textarea,
+body.post-type-bc_expense input[type="text"],
+body.post-type-bc_expense input[type="number"],
+body.post-type-bc_expense input[type="email"],
+body.post-type-bc_expense input[type="date"],
+body.post-type-bc_expense select,
+body.post-type-bc_expense textarea,
+body.post-type-bc_recurring_expense input[type="text"],
+body.post-type-bc_recurring_expense input[type="number"],
+body.post-type-bc_recurring_expense select,
+body.post-type-bc_recurring_expense textarea {
+	min-height: 44px;
+	border: 1px solid var(--bcl-border);
+	border-radius: var(--bcl-radius-sm);
+	background: #fff;
+	color: var(--bcl-text);
+	font-size: 14px;
+	padding: 10px 14px;
+	box-shadow: none;
+	transition: border-color var(--bcl-transition), box-shadow var(--bcl-transition);
+}
+
+body.toplevel_page_bcl-dashboard textarea,
+body[class*="bcl-dashboard_page_"] textarea,
+body.post-type-bc_building textarea,
+body.post-type-bc_flat textarea,
+body.post-type-bc_resident textarea,
+body.post-type-bc_bill textarea,
+body.post-type-bc_expense textarea,
+body.post-type-bc_recurring_expense textarea {
+	min-height: 110px;
+	padding: 12px 14px;
+}
+
+body.toplevel_page_bcl-dashboard input:focus,
+body.toplevel_page_bcl-dashboard select:focus,
+body.toplevel_page_bcl-dashboard textarea:focus,
+body[class*="bcl-dashboard_page_"] input:focus,
+body[class*="bcl-dashboard_page_"] select:focus,
+body[class*="bcl-dashboard_page_"] textarea:focus,
+body.post-type-bc_building input:focus,
+body.post-type-bc_building select:focus,
+body.post-type-bc_building textarea:focus,
+body.post-type-bc_flat input:focus,
+body.post-type-bc_flat select:focus,
+body.post-type-bc_flat textarea:focus,
+body.post-type-bc_resident input:focus,
+body.post-type-bc_resident select:focus,
+body.post-type-bc_resident textarea:focus,
+body.post-type-bc_bill input:focus,
+body.post-type-bc_bill select:focus,
+body.post-type-bc_bill textarea:focus,
+body.post-type-bc_expense input:focus,
+body.post-type-bc_expense select:focus,
+body.post-type-bc_expense textarea:focus,
+body.post-type-bc_recurring_expense input:focus,
+body.post-type-bc_recurring_expense select:focus,
+body.post-type-bc_recurring_expense textarea:focus {
+	border-color: var(--bcl-primary);
+	outline: none;
+	box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.15);
+}
+
+body.toplevel_page_bcl-dashboard .form-table,
+body[class*="bcl-dashboard_page_"] .form-table,
+body.post-type-bc_building .form-table,
+body.post-type-bc_flat .form-table,
+body.post-type-bc_resident .form-table,
+body.post-type-bc_bill .form-table,
+body.post-type-bc_expense .form-table,
+body.post-type-bc_recurring_expense .form-table {
+	background: var(--bcl-card);
+	border: 1px solid var(--bcl-border);
+	border-radius: var(--bcl-radius-lg);
+	box-shadow: var(--bcl-shadow);
+	padding: 8px 24px;
+	margin-top: 24px;
+}
+
+body.toplevel_page_bcl-dashboard .form-table th,
+body[class*="bcl-dashboard_page_"] .form-table th,
+body.post-type-bc_building .form-table th,
+body.post-type-bc_flat .form-table th,
+body.post-type-bc_resident .form-table th,
+body.post-type-bc_bill .form-table th,
+body.post-type-bc_expense .form-table th,
+body.post-type-bc_recurring_expense .form-table th {
+	color: var(--bcl-text);
+	font-weight: 600;
+	font-size: 14px;
+	padding: 20px 16px 20px 0;
+	width: 220px;
+}
+
+body.toplevel_page_bcl-dashboard .form-table td,
+body[class*="bcl-dashboard_page_"] .form-table td,
+body.post-type-bc_building .form-table td,
+body.post-type-bc_flat .form-table td,
+body.post-type-bc_resident .form-table td,
+body.post-type-bc_bill .form-table td,
+body.post-type-bc_expense .form-table td,
+body.post-type-bc_recurring_expense .form-table td {
+	padding: 16px 0;
+}
+
+body.post-type-bc_building .postbox .inside > p > label,
+body.post-type-bc_flat .postbox .inside > p > label,
+body.post-type-bc_resident .postbox .inside > p > label,
+body.post-type-bc_bill .postbox .inside > p > label,
+body.post-type-bc_expense .postbox .inside > p > label,
+body.post-type-bc_recurring_expense .postbox .inside > p > label {
+	display: block;
+	margin-bottom: 8px;
+	color: var(--bcl-text);
+	font-weight: 600;
+	font-size: 14px;
+}
+
+/* ── Buttons ─────────────────────────────────────────────────── */
+body.bcl-admin .button,
+body.bcl-admin .button-secondary,
+body.toplevel_page_bcl-dashboard .button,
+body.toplevel_page_bcl-dashboard .button-secondary,
+body[class*="bcl-dashboard_page_"] .button,
+body[class*="bcl-dashboard_page_"] .button-secondary,
+body.post-type-bc_building .button,
+body.post-type-bc_building .button-secondary,
+body.post-type-bc_flat .button,
+body.post-type-bc_flat .button-secondary,
+body.post-type-bc_resident .button,
+body.post-type-bc_resident .button-secondary,
+body.post-type-bc_bill .button,
+body.post-type-bc_bill .button-secondary,
+body.post-type-bc_expense .button,
+body.post-type-bc_expense .button-secondary,
+body.post-type-bc_recurring_expense .button,
+body.post-type-bc_recurring_expense .button-secondary {
+	min-height: 44px;
+	border-radius: var(--bcl-radius-sm);
+	border: 1px solid var(--bcl-border);
+	background: #fff;
+	color: var(--bcl-text);
+	font-size: 14px;
+	font-weight: 600;
+	padding: 0 18px;
+	line-height: 42px;
+	box-shadow: var(--bcl-shadow-sm);
+	transition: background-color var(--bcl-transition), border-color var(--bcl-transition), color var(--bcl-transition), transform var(--bcl-transition), box-shadow var(--bcl-transition);
+}
+
+body.toplevel_page_bcl-dashboard .button:hover,
+body[class*="bcl-dashboard_page_"] .button:hover,
+body.post-type-bc_building .button:hover,
+body.post-type-bc_flat .button:hover,
+body.post-type-bc_resident .button:hover,
+body.post-type-bc_bill .button:hover,
+body.post-type-bc_expense .button:hover,
+body.post-type-bc_recurring_expense .button:hover {
+	background: #f9fafb;
+	border-color: #d1d5db;
+	color: var(--bcl-text);
+}
+
+body.toplevel_page_bcl-dashboard .button-primary,
+body[class*="bcl-dashboard_page_"] .button-primary,
+body.post-type-bc_building .button-primary,
+body.post-type-bc_flat .button-primary,
+body.post-type-bc_resident .button-primary,
+body.post-type-bc_bill .button-primary,
+body.post-type-bc_expense .button-primary,
+body.post-type-bc_recurring_expense .button-primary {
+	background: var(--bcl-primary);
+	border-color: var(--bcl-primary);
+	color: #fff;
+	box-shadow: 0 4px 12px rgba(79, 70, 229, 0.28);
+}
+
+body.toplevel_page_bcl-dashboard .button-primary:hover,
+body[class*="bcl-dashboard_page_"] .button-primary:hover,
+body.post-type-bc_building .button-primary:hover,
+body.post-type-bc_flat .button-primary:hover,
+body.post-type-bc_resident .button-primary:hover,
+body.post-type-bc_bill .button-primary:hover,
+body.post-type-bc_expense .button-primary:hover,
+body.post-type-bc_recurring_expense .button-primary:hover {
+	background: var(--bcl-primary-hover);
+	border-color: var(--bcl-primary-hover);
+	color: #fff;
+	transform: translateY(-1px);
+}
+
+body.toplevel_page_bcl-dashboard .button-small,
+body[class*="bcl-dashboard_page_"] .button-small,
+body.post-type-bc_building .button-small,
+body.post-type-bc_flat .button-small,
+body.post-type-bc_resident .button-small,
+body.post-type-bc_bill .button-small,
+body.post-type-bc_expense .button-small,
+body.post-type-bc_recurring_expense .button-small {
+	min-height: 36px;
+	line-height: 34px;
+	padding: 0 14px;
+	font-size: 13px;
+	border-radius: 999px;
+}
+
+body.toplevel_page_bcl-dashboard .page-title-action,
+body[class*="bcl-dashboard_page_"] .page-title-action,
+body.post-type-bc_building .page-title-action,
+body.post-type-bc_flat .page-title-action,
+body.post-type-bc_resident .page-title-action,
+body.post-type-bc_bill .page-title-action,
+body.post-type-bc_expense .page-title-action,
+body.post-type-bc_recurring_expense .page-title-action {
+	background: var(--bcl-primary);
+	border-color: var(--bcl-primary);
+	color: #fff;
+	border-radius: var(--bcl-radius-sm);
+	font-weight: 600;
+	padding: 8px 16px;
+	margin-left: 12px;
+	box-shadow: 0 4px 12px rgba(79, 70, 229, 0.22);
+}
+
+body.toplevel_page_bcl-dashboard .page-title-action:hover,
+body[class*="bcl-dashboard_page_"] .page-title-action:hover,
+body.post-type-bc_building .page-title-action:hover,
+body.post-type-bc_flat .page-title-action:hover,
+body.post-type-bc_resident .page-title-action:hover,
+body.post-type-bc_bill .page-title-action:hover,
+body.post-type-bc_expense .page-title-action:hover,
+body.post-type-bc_recurring_expense .page-title-action:hover {
+	background: var(--bcl-primary-hover);
+	border-color: var(--bcl-primary-hover);
+	color: #fff;
+}
+
+/* ── Notices ─────────────────────────────────────────────────── */
+body.toplevel_page_bcl-dashboard .notice,
+body[class*="bcl-dashboard_page_"] .notice,
+body.post-type-bc_building .notice,
+body.post-type-bc_flat .notice,
+body.post-type-bc_resident .notice,
+body.post-type-bc_bill .notice,
+body.post-type-bc_expense .notice,
+body.post-type-bc_recurring_expense .notice {
+	border: none;
+	border-radius: var(--bcl-radius);
+	box-shadow: var(--bcl-shadow-sm);
+	padding: 14px 18px;
+	margin: 0 0 20px;
+}
+
+body.toplevel_page_bcl-dashboard .notice-success,
+body[class*="bcl-dashboard_page_"] .notice-success,
+body.post-type-bc_building .notice-success,
+body.post-type-bc_flat .notice-success,
+body.post-type-bc_resident .notice-success,
+body.post-type-bc_bill .notice-success,
+body.post-type-bc_expense .notice-success,
+body.post-type-bc_recurring_expense .notice-success {
+	background: var(--bcl-success-soft);
+	border-left: 4px solid var(--bcl-success);
+	color: #065f46;
+}
+
+body.toplevel_page_bcl-dashboard .notice-error,
+body[class*="bcl-dashboard_page_"] .notice-error,
+body.post-type-bc_building .notice-error,
+body.post-type-bc_flat .notice-error,
+body.post-type-bc_resident .notice-error,
+body.post-type-bc_bill .notice-error,
+body.post-type-bc_expense .notice-error,
+body.post-type-bc_recurring_expense .notice-error {
+	background: var(--bcl-danger-soft);
+	border-left: 4px solid var(--bcl-danger);
+	color: #991b1b;
+}
+
+body.toplevel_page_bcl-dashboard .notice-warning,
+body[class*="bcl-dashboard_page_"] .notice-warning,
+body.post-type-bc_building .notice-warning,
+body.post-type-bc_flat .notice-warning,
+body.post-type-bc_resident .notice-warning,
+body.post-type-bc_bill .notice-warning,
+body.post-type-bc_expense .notice-warning,
+body.post-type-bc_recurring_expense .notice-warning {
+	background: var(--bcl-warning-soft);
+	border-left: 4px solid var(--bcl-warning);
+	color: #92400e;
+}
+
+body.toplevel_page_bcl-dashboard .notice-info,
+body[class*="bcl-dashboard_page_"] .notice-info,
+body.post-type-bc_building .notice-info,
+body.post-type-bc_flat .notice-info,
+body.post-type-bc_resident .notice-info,
+body.post-type-bc_bill .notice-info,
+body.post-type-bc_expense .notice-info,
+body.post-type-bc_recurring_expense .notice-info {
+	background: var(--bcl-info-soft);
+	border-left: 4px solid var(--bcl-info);
+	color: #1e40af;
+}
+
+/* ── Meta boxes / post editor ────────────────────────────────── */
+body.post-type-bc_building .postbox,
+body.post-type-bc_flat .postbox,
+body.post-type-bc_resident .postbox,
+body.post-type-bc_bill .postbox,
+body.post-type-bc_expense .postbox,
+body.post-type-bc_recurring_expense .postbox {
+	border: 1px solid var(--bcl-border);
+	box-shadow: var(--bcl-shadow);
+	margin-bottom: 24px;
+}
+
+body.post-type-bc_building .postbox-header,
+body.post-type-bc_flat .postbox-header,
+body.post-type-bc_resident .postbox-header,
+body.post-type-bc_bill .postbox-header,
+body.post-type-bc_expense .postbox-header,
+body.post-type-bc_recurring_expense .postbox-header {
+	border-bottom: 1px solid var(--bcl-border);
+	background: #f9fafb;
+}
+
+body.post-type-bc_building .postbox .hndle,
+body.post-type-bc_flat .postbox .hndle,
+body.post-type-bc_resident .postbox .hndle,
+body.post-type-bc_bill .postbox .hndle,
+body.post-type-bc_expense .postbox .hndle,
+body.post-type-bc_recurring_expense .postbox .hndle,
+body.post-type-bc_building .postbox-header h2,
+body.post-type-bc_flat .postbox-header h2,
+body.post-type-bc_resident .postbox-header h2,
+body.post-type-bc_bill .postbox-header h2,
+body.post-type-bc_expense .postbox-header h2,
+body.post-type-bc_recurring_expense .postbox-header h2 {
+	color: var(--bcl-text);
+	font-size: 15px;
+	font-weight: 700;
+}
+
+body.post-type-bc_building #poststuff,
+body.post-type-bc_flat #poststuff,
+body.post-type-bc_resident #poststuff,
+body.post-type-bc_bill #poststuff,
+body.post-type-bc_expense #poststuff,
+body.post-type-bc_recurring_expense #poststuff {
+	padding-top: 12px;
+}
+
+body.post-type-bc_building #titlediv #title,
+body.post-type-bc_flat #titlediv #title,
+body.post-type-bc_resident #titlediv #title,
+body.post-type-bc_bill #titlediv #title,
+body.post-type-bc_expense #titlediv #title,
+body.post-type-bc_recurring_expense #titlediv #title {
+	border: 1px solid var(--bcl-border);
+	border-radius: var(--bcl-radius);
+	box-shadow: var(--bcl-shadow-sm);
+	font-size: 18px;
+	font-weight: 600;
+	padding: 14px 16px;
+	min-height: 52px;
+}
+
+/* ── Status badges ───────────────────────────────────────────── */
+body.toplevel_page_bcl-dashboard .bcl-status,
+body[class*="bcl-dashboard_page_"] .bcl-status {
+	display: inline-flex;
+	align-items: center;
+	padding: 4px 10px;
+	border-radius: 999px;
+	font-size: 12px;
+	font-weight: 700;
+	letter-spacing: 0.02em;
+}
+
+body.toplevel_page_bcl-dashboard .bcl-status-unpaid,
+body[class*="bcl-dashboard_page_"] .bcl-status-unpaid {
+	background: var(--bcl-danger-soft);
+	color: var(--bcl-danger);
+}
+
+body.toplevel_page_bcl-dashboard .bcl-status-partial,
+body[class*="bcl-dashboard_page_"] .bcl-status-partial {
+	background: var(--bcl-warning-soft);
+	color: var(--bcl-warning);
+}
+
+body.toplevel_page_bcl-dashboard .bcl-status-paid,
+body[class*="bcl-dashboard_page_"] .bcl-status-paid {
+	background: var(--bcl-success-soft);
+	color: var(--bcl-success);
+}
+
+body.toplevel_page_bcl-dashboard .bcl-status-vacant,
+body[class*="bcl-dashboard_page_"] .bcl-status-vacant,
+body.toplevel_page_bcl-dashboard .bcl-status.bcl-status-vacant,
+body[class*="bcl-dashboard_page_"] .bcl-status.bcl-status-vacant {
+	background: var(--bcl-info-soft);
+	color: var(--bcl-info);
+}
+
+body.toplevel_page_bcl-dashboard .bcl-paid-label,
+body[class*="bcl-dashboard_page_"] .bcl-paid-label {
+	color: var(--bcl-success);
+	font-weight: 700;
+}
+
+body.toplevel_page_bcl-dashboard .bcl-positive,
+body[class*="bcl-dashboard_page_"] .bcl-positive { color: var(--bcl-success); font-weight: 600; }
+body.toplevel_page_bcl-dashboard .bcl-negative,
+body[class*="bcl-dashboard_page_"] .bcl-negative { color: var(--bcl-danger); font-weight: 600; }
+body.toplevel_page_bcl-dashboard .bcl-tx-income,
+body[class*="bcl-dashboard_page_"] .bcl-tx-income { color: var(--bcl-success); font-weight: 600; }
+body.toplevel_page_bcl-dashboard .bcl-tx-expense,
+body[class*="bcl-dashboard_page_"] .bcl-tx-expense { color: var(--bcl-danger); font-weight: 600; }
+
+/* ── Modal ───────────────────────────────────────────────────── */
+body.bcl-admin .bcl-modal,
+body.toplevel_page_bcl-dashboard .bcl-modal,
+body[class*="bcl-dashboard_page_"] .bcl-modal {
+	position: fixed;
+	inset: 0;
+	z-index: 100100;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 20px;
+	background: rgba(17, 24, 39, 0.45);
+	backdrop-filter: blur(4px);
+}
+
+body.bcl-admin .bcl-modal[hidden],
+body.toplevel_page_bcl-dashboard .bcl-modal[hidden],
+body[class*="bcl-dashboard_page_"] .bcl-modal[hidden] {
+	display: none !important;
+}
+
+body.toplevel_page_bcl-dashboard .bcl-modal-content,
+body[class*="bcl-dashboard_page_"] .bcl-modal-content {
+	background: var(--bcl-card);
+	border: 1px solid var(--bcl-border);
+	border-radius: var(--bcl-radius-lg);
+	padding: 28px;
+	min-width: 360px;
+	max-width: 480px;
+	box-shadow: var(--bcl-shadow-lg);
+}
+
+body.toplevel_page_bcl-dashboard .bcl-modal-content h3,
+body[class*="bcl-dashboard_page_"] .bcl-modal-content h3 {
+	margin: 0 0 20px;
+	font-size: 20px;
+	font-weight: 700;
+	color: var(--bcl-text);
+}
+
+body.toplevel_page_bcl-dashboard .bcl-modal-actions,
+body[class*="bcl-dashboard_page_"] .bcl-modal-actions {
+	display: flex;
+	gap: 10px;
+	margin-top: 8px;
+}
+
+body.toplevel_page_bcl-dashboard .bcl-collect-payment,
+body.toplevel_page_bcl-dashboard .bcl-pay-recurring,
+body[class*="bcl-dashboard_page_"] .bcl-collect-payment,
+body[class*="bcl-dashboard_page_"] .bcl-pay-recurring {
+	min-width: 130px;
+}
+
+/* ── Report table container ──────────────────────────────────── */
+body.toplevel_page_bcl-dashboard .bcl-report-filters,
+body[class*="bcl-dashboard_page_"] .bcl-report-filters {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+	gap: 16px 20px;
+	align-items: end;
+	margin: 0;
+}
+
+body.toplevel_page_bcl-dashboard .bcl-report-toolbar-panel .bcl-panel-title,
+body[class*="bcl-dashboard_page_"] .bcl-report-toolbar-panel .bcl-panel-title {
+	margin-bottom: 20px;
+}
+
+body.toplevel_page_bcl-dashboard .bcl-filter-actions,
+body[class*="bcl-dashboard_page_"] .bcl-filter-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 10px;
+	align-items: center;
+	grid-column: 1 / -1;
+	padding-top: 4px;
+}
+
+body.toplevel_page_bcl-dashboard .bcl-report-results-panel,
+body[class*="bcl-dashboard_page_"] .bcl-report-results-panel {
+	margin-bottom: 0;
+}
+
+body.toplevel_page_bcl-dashboard .bcl-report-results-panel .bcl-panel-title,
+body[class*="bcl-dashboard_page_"] .bcl-report-results-panel .bcl-panel-title {
+	margin-bottom: 16px;
+}
+
+body.toplevel_page_bcl-dashboard #bcl-report-table,
+body[class*="bcl-dashboard_page_"] #bcl-report-table {
+	margin: 0;
+}
+
+body.toplevel_page_bcl-dashboard .bcl-empty-state,
+body[class*="bcl-dashboard_page_"] .bcl-empty-state {
+	text-align: center;
+	color: var(--bcl-muted);
+	padding: 32px 18px !important;
+	font-size: 14px;
+}
+
+/* ── Bills page: generate + list tables ───────────────────────── */
+body.toplevel_page_bcl-dashboard .bcl-generate-form,
+body[class*="bcl-dashboard_page_"] .bcl-generate-form {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 20px;
+	align-items: flex-end;
+	margin: 0;
+}
+
+body.toplevel_page_bcl-dashboard .bcl-generate-panel .bcl-panel-title,
+body[class*="bcl-dashboard_page_"] .bcl-generate-panel .bcl-panel-title {
+	margin-bottom: 20px;
+}
+
+body.toplevel_page_bcl-dashboard .bcl-generate-fields,
+body[class*="bcl-dashboard_page_"] .bcl-generate-fields {
+	flex: 0 0 auto;
+	min-width: 200px;
+}
+
+body.toplevel_page_bcl-dashboard .bcl-generate-actions,
+body[class*="bcl-dashboard_page_"] .bcl-generate-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 10px;
+	align-items: center;
+	flex: 1 1 auto;
+}
+
+body.toplevel_page_bcl-dashboard .bcl-list-form,
+body[class*="bcl-dashboard_page_"] .bcl-list-form {
+	margin: 0;
+}
+
+body.toplevel_page_bcl-dashboard .bcl-toolbar,
+body[class*="bcl-dashboard_page_"] .bcl-toolbar {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 16px;
+	align-items: flex-end;
+	justify-content: space-between;
+	margin: 0 0 16px;
+	padding-bottom: 16px;
+	border-bottom: 1px solid var(--bcl-border);
+}
+
+body.toplevel_page_bcl-dashboard .bcl-toolbar-filters,
+body[class*="bcl-dashboard_page_"] .bcl-toolbar-filters {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 12px;
+	align-items: flex-end;
+	flex: 1 1 auto;
+}
+
+body.toplevel_page_bcl-dashboard .bcl-toolbar-filters > label.bcl-field-label,
+body[class*="bcl-dashboard_page_"] .bcl-toolbar-filters > label.bcl-field-label {
+	display: none;
+}
+
+body.toplevel_page_bcl-dashboard .bcl-toolbar-filters input[type="month"],
+body.toplevel_page_bcl-dashboard .bcl-toolbar-filters select,
+body[class*="bcl-dashboard_page_"] .bcl-toolbar-filters input[type="month"],
+body[class*="bcl-dashboard_page_"] .bcl-toolbar-filters select {
+	min-width: 160px;
+}
+
+body.toplevel_page_bcl-dashboard .bcl-toolbar-search,
+body[class*="bcl-dashboard_page_"] .bcl-toolbar-search {
+	flex: 0 1 320px;
+	margin-left: auto;
+}
+
+body.toplevel_page_bcl-dashboard .bcl-table-wrap,
+body[class*="bcl-dashboard_page_"] .bcl-table-wrap {
+	margin: 0;
+	overflow-x: auto;
+	-webkit-overflow-scrolling: touch;
+}
+
+/* Tables inside panels: flat style (no double card) */
+body.toplevel_page_bcl-dashboard .bcl-panel .bcl-table-wrap .wp-list-table,
+body.toplevel_page_bcl-dashboard .bcl-panel .bcl-table-wrap table.widefat,
+body[class*="bcl-dashboard_page_"] .bcl-panel .bcl-table-wrap .wp-list-table,
+body[class*="bcl-dashboard_page_"] .bcl-panel .bcl-table-wrap table.widefat {
+	border-radius: var(--bcl-radius);
+	box-shadow: none;
+	border: 1px solid var(--bcl-border) !important;
+}
+
+/* WP_List_Table chrome inside panels */
+body.toplevel_page_bcl-dashboard .bcl-panel .tablenav,
+body[class*="bcl-dashboard_page_"] .bcl-panel .tablenav {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 12px;
+	align-items: center;
+	justify-content: space-between;
+	float: none;
+	clear: both;
+	height: auto;
+	margin: 0 0 12px;
+	padding: 0;
+}
+
+body.toplevel_page_bcl-dashboard .bcl-panel .tablenav.top,
+body[class*="bcl-dashboard_page_"] .bcl-panel .tablenav.top {
+	margin-bottom: 12px;
+}
+
+body.toplevel_page_bcl-dashboard .bcl-panel .tablenav.bottom,
+body[class*="bcl-dashboard_page_"] .bcl-panel .tablenav.bottom {
+	margin-top: 12px;
+	margin-bottom: 0;
+}
+
+body.toplevel_page_bcl-dashboard .bcl-panel .tablenav .alignleft,
+body.toplevel_page_bcl-dashboard .bcl-panel .tablenav .alignright,
+body[class*="bcl-dashboard_page_"] .bcl-panel .tablenav .alignleft,
+body[class*="bcl-dashboard_page_"] .bcl-panel .tablenav .alignright {
+	float: none;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	align-items: center;
+	margin: 0;
+}
+
+body.toplevel_page_bcl-dashboard .bcl-panel .tablenav .actions,
+body[class*="bcl-dashboard_page_"] .bcl-panel .tablenav .actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	align-items: center;
+	padding: 0;
+}
+
+body.toplevel_page_bcl-dashboard .bcl-panel .tablenav .actions select,
+body[class*="bcl-dashboard_page_"] .bcl-panel .tablenav .actions select {
+	margin: 0;
+}
+
+body.toplevel_page_bcl-dashboard .bcl-panel .tablenav .tablenav-pages,
+body[class*="bcl-dashboard_page_"] .bcl-panel .tablenav .tablenav-pages {
+	margin: 0;
+}
+
+body.toplevel_page_bcl-dashboard .bcl-panel .search-box,
+body[class*="bcl-dashboard_page_"] .bcl-panel .search-box {
+	float: none;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	align-items: center;
+	margin: 0;
+	padding: 0;
+	width: 100%;
+}
+
+body.toplevel_page_bcl-dashboard .bcl-panel .search-box label,
+body[class*="bcl-dashboard_page_"] .bcl-panel .search-box label {
+	display: none;
+}
+
+body.toplevel_page_bcl-dashboard .bcl-panel .search-box input[type="search"],
+body[class*="bcl-dashboard_page_"] .bcl-panel .search-box input[type="search"] {
+	flex: 1 1 180px;
+	margin: 0;
+}
+
+body.toplevel_page_bcl-dashboard .bcl-panel .search-box input[type="submit"],
+body[class*="bcl-dashboard_page_"] .bcl-panel .search-box input[type="submit"] {
+	margin: 0;
+}
+
+body.toplevel_page_bcl-dashboard .bcl-panel p.submit,
+body.toplevel_page_bcl-dashboard .bcl-panel .submit,
+body[class*="bcl-dashboard_page_"] .bcl-panel p.submit,
+body[class*="bcl-dashboard_page_"] .bcl-panel .submit {
+	margin: 0;
+	padding: 0;
+}
+
+body.toplevel_page_bcl-dashboard .bcl-panel .wp-list-table .column-actions,
+body[class*="bcl-dashboard_page_"] .bcl-panel .wp-list-table .column-actions {
+	white-space: nowrap;
+}
+
+body.toplevel_page_bcl-dashboard .bcl-panel .wp-list-table .column-actions .button,
+body[class*="bcl-dashboard_page_"] .bcl-panel .wp-list-table .column-actions .button {
+	margin: 2px 4px 2px 0;
+	vertical-align: middle;
+}
+
+/* ── Subsubsub / status filters (list screens) ───────────────── */
+body.post-type-bc_building .subsubsub,
+body.post-type-bc_flat .subsubsub,
+body.post-type-bc_resident .subsubsub,
+body.post-type-bc_bill .subsubsub,
+body.post-type-bc_expense .subsubsub,
+body.post-type-bc_recurring_expense .subsubsub {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	margin: 0 0 20px;
+	padding: 0;
+}
+
+body.post-type-bc_building .subsubsub li,
+body.post-type-bc_flat .subsubsub li,
+body.post-type-bc_resident .subsubsub li,
+body.post-type-bc_bill .subsubsub li,
+body.post-type-bc_expense .subsubsub li,
+body.post-type-bc_recurring_expense .subsubsub li {
+	margin: 0;
+}
+
+body.post-type-bc_building .subsubsub a,
+body.post-type-bc_flat .subsubsub a,
+body.post-type-bc_resident .subsubsub a,
+body.post-type-bc_bill .subsubsub a,
+body.post-type-bc_expense .subsubsub a,
+body.post-type-bc_recurring_expense .subsubsub a {
+	display: inline-flex;
+	align-items: center;
+	padding: 8px 5px;
+	color: var(--bcl-muted);
+	text-decoration: none;
+	transition: color var(--bcl-transition);
+}
+
+body.post-type-bc_building .subsubsub a:hover,
+body.post-type-bc_flat .subsubsub a:hover,
+body.post-type-bc_resident .subsubsub a:hover,
+body.post-type-bc_bill .subsubsub a:hover,
+body.post-type-bc_expense .subsubsub a:hover,
+body.post-type-bc_recurring_expense .subsubsub a:hover,
+body.post-type-bc_building .subsubsub .current a,
+body.post-type-bc_flat .subsubsub .current a,
+body.post-type-bc_resident .subsubsub .current a,
+body.post-type-bc_bill .subsubsub .current a,
+body.post-type-bc_expense .subsubsub .current a,
+body.post-type-bc_recurring_expense .subsubsub .current a {
+	color: var(--bcl-primary);
+	font-weight: 600;
+}
+
+body.post-type-bc_building .subsubsub .count,
+body.post-type-bc_flat .subsubsub .count,
+body.post-type-bc_resident .subsubsub .count,
+body.post-type-bc_bill .subsubsub .count,
+body.post-type-bc_expense .subsubsub .count,
+body.post-type-bc_recurring_expense .subsubsub .count {
+	color: var(--bcl-muted);
+}
+
+/* ── Search box ──────────────────────────────────────────────── */
+body.toplevel_page_bcl-dashboard .search-box input[name="s"],
+body[class*="bcl-dashboard_page_"] .search-box input[name="s"],
+body.post-type-bc_building .search-box input[name="s"],
+body.post-type-bc_flat .search-box input[name="s"],
+body.post-type-bc_resident .search-box input[name="s"],
+body.post-type-bc_bill .search-box input[name="s"],
+body.post-type-bc_expense .search-box input[name="s"],
+body.post-type-bc_recurring_expense .search-box input[name="s"] {
+	min-height: 44px;
+	border-radius: var(--bcl-radius-sm);
+}
+
+/* Hide default Add New next to title; rendered in search toolbar via PHP */
+body.post-type-bc_building .wrap > .page-title-action,
+body.post-type-bc_flat .wrap > .page-title-action,
+body.post-type-bc_resident .wrap > .page-title-action,
+body.post-type-bc_expense .wrap > .page-title-action,
+body.post-type-bc_recurring_expense .wrap > .page-title-action {
+	display: none !important;
+}
+
+/* CPT list screens: Add New + search in one toolbar row */
+body.post-type-bc_building #posts-filter .search-box,
+body.post-type-bc_flat #posts-filter .search-box,
+body.post-type-bc_resident #posts-filter .search-box,
+body.post-type-bc_expense #posts-filter .search-box,
+body.post-type-bc_recurring_expense #posts-filter .search-box {
+	float: right;
+	display: inline-flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 10px;
+	margin: 8px 0 16px;
+	padding: 0;
+}
+
+body.post-type-bc_building #posts-filter .search-box .page-title-action,
+body.post-type-bc_flat #posts-filter .search-box .page-title-action,
+body.post-type-bc_resident #posts-filter .search-box .page-title-action,
+body.post-type-bc_expense #posts-filter .search-box .page-title-action,
+body.post-type-bc_recurring_expense #posts-filter .search-box .page-title-action {
+	float: none;
+	margin: 0;
+	order: 1;
+}
+
+body.post-type-bc_building #posts-filter .search-box label,
+body.post-type-bc_flat #posts-filter .search-box label,
+body.post-type-bc_resident #posts-filter .search-box label,
+body.post-type-bc_expense #posts-filter .search-box label,
+body.post-type-bc_recurring_expense #posts-filter .search-box label {
+	order: 2;
+	margin: 0;
+}
+
+body.post-type-bc_building #posts-filter .search-box input[name="s"],
+body.post-type-bc_flat #posts-filter .search-box input[name="s"],
+body.post-type-bc_resident #posts-filter .search-box input[name="s"],
+body.post-type-bc_expense #posts-filter .search-box input[name="s"],
+body.post-type-bc_recurring_expense #posts-filter .search-box input[name="s"] {
+	order: 3;
+	width: 220px;
+	max-width: 100%;
+	margin: 0;
+}
+
+body.post-type-bc_building #posts-filter .search-box input[type="submit"],
+body.post-type-bc_flat #posts-filter .search-box input[type="submit"],
+body.post-type-bc_resident #posts-filter .search-box input[type="submit"],
+body.post-type-bc_expense #posts-filter .search-box input[type="submit"],
+body.post-type-bc_recurring_expense #posts-filter .search-box input[type="submit"] {
+	order: 4;
+	margin: 0;
+}
+
+/* ── Row actions ─────────────────────────────────────────────── */
+body.post-type-bc_building .row-actions,
+body.post-type-bc_flat .row-actions,
+body.post-type-bc_resident .row-actions,
+body.post-type-bc_bill .row-actions,
+body.post-type-bc_expense .row-actions,
+body.post-type-bc_recurring_expense .row-actions {
+	color: var(--bcl-muted);
+}
+
+body.post-type-bc_building .row-actions a,
+body.post-type-bc_flat .row-actions a,
+body.post-type-bc_resident .row-actions a,
+body.post-type-bc_bill .row-actions a,
+body.post-type-bc_expense .row-actions a,
+body.post-type-bc_recurring_expense .row-actions a {
+	color: var(--bcl-primary);
+	font-weight: 500;
+}
+
+/* ── Responsive ──────────────────────────────────────────────── */
+@media screen and (max-width: 960px) {
+	body.toplevel_page_bcl-dashboard .wrap,
+	body[class*="bcl-dashboard_page_"] .wrap,
+	body.post-type-bc_building .wrap,
+	body.post-type-bc_flat .wrap,
+	body.post-type-bc_resident .wrap,
+	body.post-type-bc_bill .wrap,
+	body.post-type-bc_expense .wrap,
+	body.post-type-bc_recurring_expense .wrap,
+	body.toplevel_page_bcl-dashboard .bcl-wrap,
+	body[class*="bcl-dashboard_page_"] .bcl-wrap {
+		padding: 16px 12px 24px;
+	}
+
+	body.bcl-admin .bcl-panel,
+body.toplevel_page_bcl-dashboard .bcl-panel,
+	body[class*="bcl-dashboard_page_"] .bcl-panel {
+		padding: 18px 16px;
+	}
+
+	body.toplevel_page_bcl-dashboard .bcl-dashboard-grid,
+	body[class*="bcl-dashboard_page_"] .bcl-dashboard-grid {
+		grid-template-columns: 1fr 1fr;
+	}
+
+	body.toplevel_page_bcl-dashboard .bcl-filters,
+	body.toplevel_page_bcl-dashboard .bcl-report-filters,
+	body[class*="bcl-dashboard_page_"] .bcl-filters,
+	body[class*="bcl-dashboard_page_"] .bcl-report-filters {
+		grid-template-columns: 1fr;
+	}
+
+	body.toplevel_page_bcl-dashboard .bcl-toolbar,
+	body[class*="bcl-dashboard_page_"] .bcl-toolbar {
+		flex-direction: column;
+		align-items: stretch;
+	}
+
+	body.toplevel_page_bcl-dashboard .bcl-toolbar-search,
+	body[class*="bcl-dashboard_page_"] .bcl-toolbar-search {
+		flex: 1 1 auto;
+		margin-left: 0;
+	}
+
+	body.toplevel_page_bcl-dashboard .bcl-generate-form,
+	body[class*="bcl-dashboard_page_"] .bcl-generate-form {
+		flex-direction: column;
+		align-items: stretch;
+	}
+}
+
+@media screen and (max-width: 600px) {
+	body.toplevel_page_bcl-dashboard .bcl-dashboard-grid,
+	body[class*="bcl-dashboard_page_"] .bcl-dashboard-grid {
+		grid-template-columns: 1fr;
+	}
+
+	body.toplevel_page_bcl-dashboard .wrap > h1,
+	body[class*="bcl-dashboard_page_"] .wrap > h1 {
+		font-size: 24px;
+	}
+}
+
+/* ── Bills & Payments page (bcl-bills) ───────────────────────── */
+body.bcl-admin .bcl-page-bills .bcl-list-form {
+	margin: 0;
+}
+
+body.bcl-admin .bcl-page-bills .bcl-filter-bar {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 16px 20px;
+	align-items: flex-end;
+	margin: 0 0 20px;
+	padding-bottom: 20px;
+	border-bottom: 1px solid var(--bcl-border);
+}
+
+body.bcl-admin .bcl-page-bills .bcl-filter-bar__field {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	min-width: 180px;
+}
+
+body.bcl-admin .bcl-page-bills .bcl-filter-bar__actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 10px;
+	align-items: center;
+}
+
+body.bcl-admin .bcl-page-bills .bcl-generate-form {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 20px;
+	align-items: flex-end;
+	margin: 0;
+}
+
+body.bcl-admin .bcl-page-bills .bcl-generate-fields {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	min-width: 200px;
+}
+
+body.bcl-admin .bcl-page-bills .bcl-generate-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 10px;
+	align-items: center;
+}
+
+body.bcl-admin .bcl-page-bills .bcl-list-table-shell {
+	display: flow-root;
+	overflow-x: auto;
+	-webkit-overflow-scrolling: touch;
+}
+
+body.bcl-admin .bcl-page-bills .bcl-list-table-shell .search-box {
+	float: right;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	align-items: center;
+	margin: 0 0 14px;
+	padding: 0;
+	width: auto;
+	max-width: 100%;
+}
+
+body.bcl-admin .bcl-page-bills .bcl-list-table-shell .search-box label {
+	display: none;
+}
+
+body.bcl-admin .bcl-page-bills .bcl-list-table-shell .search-box input[type="search"] {
+	width: 220px;
+	max-width: 100%;
+	margin: 0;
+}
+
+body.bcl-admin .bcl-page-bills .bcl-list-table-shell .search-box input[type="submit"] {
+	margin: 0;
+}
+
+body.bcl-admin .bcl-page-bills .tablenav {
+	clear: both !important;
+	float: none !important;
+	height: auto !important;
+	min-height: 44px;
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+	margin: 0 0 12px !important;
+	padding: 0 !important;
+	overflow: visible;
+}
+
+body.bcl-admin .bcl-page-bills .tablenav.top {
+	margin-top: 0 !important;
+}
+
+body.bcl-admin .bcl-page-bills .tablenav.bottom {
+	margin-top: 12px !important;
+	margin-bottom: 0 !important;
+}
+
+body.bcl-admin .bcl-page-bills .tablenav .alignleft,
+body.bcl-admin .bcl-page-bills .tablenav .alignright {
+	float: none !important;
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 8px;
+	margin: 0 !important;
+}
+
+body.bcl-admin .bcl-page-bills .tablenav .actions {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 8px;
+	padding: 0 !important;
+	overflow: visible;
+}
+
+body.bcl-admin .bcl-page-bills .tablenav .actions select,
+body.bcl-admin .bcl-page-bills .tablenav .actions .button {
+	margin: 0 !important;
+	float: none !important;
+}
+
+body.bcl-admin .bcl-page-bills .tablenav .tablenav-pages {
+	margin: 0 !important;
+	float: none !important;
+}
+
+body.bcl-admin .bcl-page-bills .wp-list-table {
+	width: 100%;
+	min-width: 960px;
+	margin: 0 !important;
+	border-collapse: collapse !important;
+	border-radius: var(--bcl-radius) !important;
+	box-shadow: none !important;
+	border: 1px solid var(--bcl-border) !important;
+	table-layout: auto;
+}
+
+body.bcl-admin .bcl-page-bills .wp-list-table thead th,
+body.bcl-admin .bcl-page-bills .wp-list-table tbody td {
+	white-space: nowrap;
+}
+
+body.bcl-admin .bcl-page-bills .wp-list-table .column-title,
+body.bcl-admin .bcl-page-bills .wp-list-table .column-actions {
+	white-space: normal;
+	min-width: 140px;
+}
+
+body.bcl-admin .bcl-page-bills .wp-list-table .column-actions .button {
+	margin: 2px 6px 2px 0;
+}
+
+body.bcl-admin .bcl-page-bills .wp-list-table .check-column {
+	width: 2.2em;
+	padding-left: 12px !important;
+	padding-right: 4px !important;
+}
+
+body.bcl-admin .bcl-page-bills .bcl-payments-section:last-child {
+	margin-bottom: 0;
+}
+
+@media screen and (max-width: 782px) {
+	body.bcl-admin .bcl-page-bills .bcl-filter-bar,
+	body.bcl-admin .bcl-page-bills .bcl-generate-form {
+		flex-direction: column;
+		align-items: stretch;
+	}
+
+	body.bcl-admin .bcl-page-bills .bcl-filter-bar__field {
+		min-width: 0;
+		width: 100%;
+	}
+
+	body.bcl-admin .bcl-page-bills .bcl-list-table-shell .search-box {
+		float: none;
+		width: 100%;
+	}
+
+	body.bcl-admin .bcl-page-bills .bcl-list-table-shell .search-box input[type="search"] {
+		flex: 1 1 auto;
+		width: auto;
+	}
+
+	body.bcl-admin .bcl-page-bills .tablenav {
+		flex-direction: column;
+		align-items: stretch;
+	}
+}
+
+/* ── Reports page (bcl-reports) ──────────────────────────────── */
+body.bcl-admin .bcl-page-reports .bcl-report-filters {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+	gap: 16px 20px;
+	align-items: end;
+	margin: 0;
+}
+
+body.bcl-admin .bcl-page-reports .bcl-filter-field {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	min-width: 0;
+}
+
+body.bcl-admin .bcl-page-reports .bcl-filter-field select,
+body.bcl-admin .bcl-page-reports .bcl-filter-field input[type="date"] {
+	width: 100%;
+	max-width: 100%;
+}
+
+body.bcl-admin .bcl-page-reports .bcl-custom-date-field[hidden] {
+	display: none !important;
+}
+
+body.bcl-admin .bcl-page-reports .bcl-filter-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 10px;
+	align-items: center;
+	grid-column: 1 / -1;
+	padding-top: 4px;
+}
+
+body.bcl-admin .bcl-page-reports .bcl-report-toolbar-panel .bcl-panel-title {
+	margin-bottom: 20px;
+}
+
+body.bcl-admin .bcl-page-reports .bcl-report-results-panel {
+	margin-bottom: 0;
+}
+
+body.bcl-admin .bcl-page-reports .bcl-report-results-panel .bcl-panel-title {
+	margin-bottom: 16px;
+}
+
+body.bcl-admin .bcl-page-reports .bcl-table-wrap {
+	overflow-x: auto;
+	-webkit-overflow-scrolling: touch;
+}
+
+body.bcl-admin .bcl-page-reports #bcl-report-table {
+	width: 100%;
+	min-width: 640px;
+	margin: 0 !important;
+	border-collapse: collapse !important;
+	border-radius: var(--bcl-radius) !important;
+	box-shadow: none !important;
+	border: 1px solid var(--bcl-border) !important;
+}
+
+body.bcl-admin .bcl-page-reports #bcl-report-table thead th {
+	white-space: nowrap;
+}
+
+body.bcl-admin .bcl-page-reports #bcl-report-table tbody td {
+	white-space: nowrap;
+}
+
+body.bcl-admin .bcl-page-reports .bcl-empty-state {
+	text-align: center;
+	color: var(--bcl-muted);
+	padding: 32px 18px !important;
+	font-size: 14px;
+}
+
+/* ── Settings page (bcl-settings) ────────────────────────────── */
+body.bcl-admin .bcl-page-settings .bcl-settings-panel {
+	margin-bottom: 0;
+}
+
+body.bcl-admin .bcl-page-settings .bcl-settings-form {
+	margin: 0;
+}
+
+body.bcl-admin .bcl-page-settings .bcl-settings-table {
+	width: 100%;
+	margin: 0 !important;
+	background: transparent !important;
+	border: none !important;
+	border-radius: 0 !important;
+	box-shadow: none !important;
+	padding: 0 !important;
+}
+
+body.bcl-admin .bcl-page-settings .bcl-settings-table th {
+	width: 220px;
+	padding: 18px 20px 18px 0;
+	vertical-align: middle;
+	font-weight: 600;
+	color: var(--bcl-text);
+}
+
+body.bcl-admin .bcl-page-settings .bcl-settings-table td {
+	padding: 14px 0;
+	vertical-align: middle;
+}
+
+body.bcl-admin .bcl-page-settings .bcl-settings-table tr:first-child th,
+body.bcl-admin .bcl-page-settings .bcl-settings-table tr:first-child td {
+	padding-top: 0;
+}
+
+body.bcl-admin .bcl-page-settings .bcl-settings-table input.regular-text,
+body.bcl-admin .bcl-page-settings .bcl-settings-table input.small-text,
+body.bcl-admin .bcl-page-settings .bcl-settings-table select {
+	max-width: 360px;
+	width: 100%;
+}
+
+body.bcl-admin .bcl-page-settings .bcl-settings-table input.small-text {
+	max-width: 120px;
+}
+
+body.bcl-admin .bcl-page-settings .bcl-settings-actions {
+	margin-top: 8px;
+	padding-top: 20px;
+	border-top: 1px solid var(--bcl-border);
+}
+
+body.bcl-admin .bcl-page-settings .bcl-settings-actions p.submit,
+body.bcl-admin .bcl-page-settings .bcl-settings-actions .submit {
+	margin: 0;
+	padding: 0;
+}
+
+@media screen and (max-width: 782px) {
+	body.bcl-admin .bcl-page-reports .bcl-report-filters {
+		grid-template-columns: 1fr;
+	}
+
+	body.bcl-admin .bcl-page-settings .bcl-settings-table,
+	body.bcl-admin .bcl-page-settings .bcl-settings-table tbody,
+	body.bcl-admin .bcl-page-settings .bcl-settings-table tr,
+	body.bcl-admin .bcl-page-settings .bcl-settings-table th,
+	body.bcl-admin .bcl-page-settings .bcl-settings-table td {
+		display: block;
+		width: 100%;
+	}
+
+	body.bcl-admin .bcl-page-settings .bcl-settings-table th {
+		padding: 0 0 8px;
+	}
+
+	body.bcl-admin .bcl-page-settings .bcl-settings-table td {
+		padding: 0 0 20px;
+	}
+}
