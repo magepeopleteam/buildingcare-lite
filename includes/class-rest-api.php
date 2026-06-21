@@ -306,8 +306,8 @@ class Rest_Api {
 	 */
 	public function get_audit_log(): \WP_REST_Response {
 		$logs = get_option( 'bcl_audit_log', array() );
-		$logs = is_array( $logs ) ? array_reverse( $logs ) : array();
-
+		$logs = is_array( $logs ) ? $logs : array();
+		$logs = array_reverse( $logs );
 		return new \WP_REST_Response( array_slice( $logs, 0, 100 ), 200 );
 	}
 

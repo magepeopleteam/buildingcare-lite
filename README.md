@@ -3,7 +3,7 @@
 Lightweight WordPress apartment management for building owners and managers. Track flats, residents, monthly service charges, expenses, payments, and balance sheets — without custom database tables or external frameworks.
 
 **Author:** [MagePeople Team](https://mage-people.com/)  
-**Version:** 1.0.0  
+**Version:** 1.2.0  
 **License:** GPL v2 or later
 
 ---
@@ -64,6 +64,11 @@ Go to **BuildingCare → Settings** and set:
 - **Opening balance** — Starting fund balance for reports
 - **Currency symbol** — Default is `৳`
 - **Default building** — Optional default for new records
+- **Vacant flat charge (%)** — Percentage of the service charge billed to vacant flats (default 50%)
+- **Payment due day** — Day of the billing month payment is due (1–28)
+- **Late fee** — Fixed amount or percent of the overdue balance, applied when a bill carries debt forward
+- **Email notifications** — Opt-in payment receipts and daily due reminders to residents
+- **Data cleanup** — Optionally delete all plugin data on uninstall
 
 ### 2. Add your data
 
@@ -103,21 +108,24 @@ From **Bills & Payments**, use **Collect** or **Record Payment** on each row. Su
 
 ---
 
-## Admin Menu
+## Admin Interface
 
-| Menu item            | Description                              |
+BuildingCare adds a **single** admin menu item — **BuildingCare** — that opens a tabbed dashboard. All features are tabs inside this one page (no separate submenus):
+
+| Tab                  | Description                              |
 |----------------------|------------------------------------------|
-| Dashboard            | Monthly overview and key stats           |
-| Buildings            | Manage `bc_building` posts               |
-| Flats                | Manage `bc_flat` posts                   |
-| Residents            | Manage `bc_resident` posts               |
+| Dashboard            | Monthly overview, balance sheet, income vs expense chart |
+| Buildings            | Create/edit/delete buildings in-place    |
+| Flats                | Create/edit/delete flats in-place        |
+| Residents            | Create/edit/delete residents in-place    |
 | Bills & Payments     | Generate bills and collect payments      |
-| All Bills            | Read-only bill list (no manual creation) |
 | Expenses             | One-time expense entries                 |
 | Recurring Expenses   | Monthly expense templates                |
 | Reports              | Analytics and CSV export                 |
-| Settings             | Opening balance, currency, defaults      |
+| Settings             | Balance, currency, billing rules, emails |
 | Audit Log            | Activity history                         |
+
+Tabs are shown only for the capabilities the current user holds.
 
 ---
 
@@ -166,6 +174,7 @@ WordPress **Administrators** receive all BuildingCare capabilities automatically
 | `bc_bill`              | Monthly service charge bill    |
 | `bc_expense`           | One-time expense voucher       |
 | `bc_recurring_expense` | Recurring monthly expense      |
+| `bc_payment`           | Immutable payment ledger entry |
 
 ### Taxonomy
 
@@ -195,6 +204,8 @@ A WordPress cron event (`bcl_monthly_tasks`) runs on the **first day of each mon
 2. Creates expense vouchers from active recurring expenses
 
 You can also trigger bill generation manually from **Bills & Payments** at any time.
+
+When reminders are enabled, a second daily cron event (`bcl_daily_reminders`) emails residents whose bills are due today or overdue and still unpaid.
 
 ---
 
@@ -307,6 +318,36 @@ For questions, feature requests, or commercial support, visit [MagePeople](https
 ---
 
 ## Changelog
+
+### 1.2.0
+
+- **Single-page tabbed admin** — Everything now lives under one **BuildingCare** menu item. Overview, Buildings, Flats, Residents, Bills & Payments, Expenses, Recurring Expenses, Reports, Settings, and Audit Log are tabs inside one page; the separate submenus were removed.
+- Buildings, flats, residents, expenses, and recurring expenses are created, edited, and deleted **inside the dashboard** (searchable, paginated lists with inline add/edit forms) — no more jumping to native post screens. Saves reuse the existing validation/occupancy logic.
+- Professional tabbed UI with refreshed list, form, and table styling.
+- **Instant AJAX tab switching** — changing tabs, searching, filtering, paginating, and one-click payments update the panel in place (no full page reload), with browser back/forward support.
+- **Fully mobile responsive** — scrollable tab bar, stacked headers/filters/forms, and horizontally scrollable tables on small screens.
+
+### 1.1.0
+
+**Correctness fixes**
+
+- Fixed outstanding dues being double-counted: prior unpaid balances are now carried forward (and zeroed on the old bill) when a new bill rolls them in.
+- Income is now tracked through an immutable payment ledger (`bc_payment`), so partial payments are attributed to their real payment dates instead of a single overwritten value.
+- Centralized bill payment-state recalculation into one helper used by both manual edits and recorded payments.
+- Fixed a `$wpdb->prepare()` call made without placeholders.
+- Fixed a fatal in the Audit Log when an entry's user had been deleted.
+- One-click collection now records the chosen payment method instead of always "Cash".
+- Removed N+1 queries from the flat-wise and resident-wise reports (single aggregated query each).
+
+**New features**
+
+- Payment ledger with per-bill payment history shown on the bill screen.
+- Configurable billing rules: vacant-flat charge percentage, payment due day, and late fees (fixed or percent of overdue).
+- Automatic late fee applied when a new bill carries an unpaid balance forward.
+- Email notifications: payment receipts to residents and a daily due/overdue reminder cron (both opt-in).
+- Dashboard income-vs-expense chart for the last 6 months.
+- Optional "delete all data on uninstall" setting.
+- Version-gated upgrade routine that refreshes roles and cron after updates.
 
 ### 1.0.0
 
