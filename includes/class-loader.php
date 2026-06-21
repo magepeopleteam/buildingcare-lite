@@ -53,6 +53,9 @@ final class Loader {
 		new Export();
 		new Notifications();
 		new Rest_Api();
+		new PWA();
+		new Tenant_Accounts();
+		new Tenant_Portal();
 
 		if ( is_admin() ) {
 			new Admin_Pages();
@@ -72,6 +75,9 @@ final class Loader {
 		// Ensure roles/capabilities are refreshed and cron is scheduled after an update.
 		( new Roles() )->register_roles();
 		Cron::schedule_events();
+
+		// Flush so new rewrite rules (e.g. the /tenant/ portal) take effect.
+		flush_rewrite_rules();
 
 		update_option( 'bcl_db_version', BCL_VERSION );
 	}
@@ -93,6 +99,9 @@ final class Loader {
 			'class-export.php',
 			'class-notifications.php',
 			'class-rest-api.php',
+			'class-pwa.php',
+			'class-tenant-accounts.php',
+			'class-tenant-portal.php',
 		);
 
 		if ( is_admin() ) {
@@ -125,6 +134,7 @@ final class Loader {
 		require_once BCL_PLUGIN_DIR . 'includes/class-roles.php';
 		require_once BCL_PLUGIN_DIR . 'includes/class-cron.php';
 		require_once BCL_PLUGIN_DIR . 'includes/class-payments.php';
+		require_once BCL_PLUGIN_DIR . 'includes/class-tenant-portal.php';
 
 		$post_types = new Post_Types();
 		$post_types->register_post_types();
@@ -132,6 +142,7 @@ final class Loader {
 		$post_types->seed_expense_categories();
 
 		( new Payments() )->register_post_type();
+		( new Tenant_Portal() )->add_rewrite();
 
 		$roles = new Roles();
 		$roles->register_roles();

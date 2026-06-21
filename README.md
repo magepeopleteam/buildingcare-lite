@@ -3,7 +3,7 @@
 Lightweight WordPress apartment management for building owners and managers. Track flats, residents, monthly service charges, expenses, payments, and balance sheets — without custom database tables or external frameworks.
 
 **Author:** [MagePeople Team](https://mage-people.com/)  
-**Version:** 1.2.0  
+**Version:** 1.4.0  
 **License:** GPL v2 or later
 
 ---
@@ -318,6 +318,18 @@ For questions, feature requests, or commercial support, visit [MagePeople](https
 ---
 
 ## Changelog
+
+### 1.4.0
+
+- **Tenant portal** — A front-end portal at `/tenant/` where residents log in to view their own flat's outstanding dues, bills, payment history, downloadable/printable receipts, and profile. Strictly scoped to the logged-in tenant's data.
+- **Automatic tenant accounts** — When a resident with an email address is saved, a restricted `building_tenant` WordPress user is created (or an existing user is linked) and emailed a set-password link. Tenants cannot access wp-admin and are redirected to the portal.
+- **Installable tenant app** — The portal ships its own PWA manifest and registers the service worker, so tenants can install it on their phone like an app.
+- **Tenants can edit their contact details** (mobile, emergency contact) from the portal profile tab.
+- Admin dashboard shows the tenant portal URL plus a **"Create logins for all residents"** button to bulk-provision accounts for existing residents.
+
+### 1.3.0
+
+- **Installable PWA** — The dashboard can be installed as an app on phones and desktops. Adds a web app manifest, a scoped service worker (served from query-string endpoints so it works with any permalink setup), app icons (including a maskable icon), an offline fallback page, and an **Install app** button that appears when installation is available.
 
 ### 1.2.0
 
