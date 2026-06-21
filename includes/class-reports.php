@@ -41,7 +41,7 @@ class Reports {
 
 		$range = $this->month_date_range( $month );
 		$stats = $this->calculate_period_stats( $range['start'], $range['end'], $month );
-		set_transient( $key, $stats, 5 * MINUTE_IN_SECONDS );
+		set_transient( $key, $stats, 15 * MINUTE_IN_SECONDS );
 
 		return $stats;
 	}
@@ -79,6 +79,17 @@ class Reports {
 	 * Sum collected payments in date range.
 	 */
 	public function sum_collected( string $start_date, string $end_date ): float {
+		// Prefer the payment ledger so partial payments are attributed to their real dates.
+		if ( class_exists( __NAMESPACE__ . '\\Payments' ) && Payments::has_entries() ) {
+			return Payments::sum_between( $start_date, $end_date );
+		}
+
+		// Use fast direct SQL when possible (legacy data without a ledger).
+		if ( function_exists( 'bcl_sum_meta_between_dates' ) ) {
+			return bcl_sum_meta_between_dates( 'bc_bill', 'bc_amount_paid', 'bc_payment_date', $start_date, $end_date );
+		}
+
+		// Fallback (legacy).
 		$bills = get_posts(
 			array(
 				'post_type'      => 'bc_bill',
@@ -108,6 +119,10 @@ class Reports {
 	 * Sum all outstanding dues across bills.
 	 */
 	public function sum_outstanding_dues(): float {
+		if ( function_exists( 'bcl_sum_outstanding_dues_fast' ) ) {
+			return bcl_sum_outstanding_dues_fast();
+		}
+
 		$bills = get_posts(
 			array(
 				'post_type'      => 'bc_bill',
@@ -138,6 +153,14 @@ class Reports {
 	 * @return array{unpaid_flats:int, collection_percent:float}
 	 */
 	public function get_bill_stats( string $month ): array {
+		if ( function_exists( 'bcl_get_bill_stats_fast' ) ) {
+			$fast = bcl_get_bill_stats_fast( $month );
+			return array(
+				'unpaid_flats'       => $fast['unpaid_flats'],
+				'collection_percent' => $fast['collection_percent'],
+			);
+		}
+
 		$bills = get_posts(
 			array(
 				'post_type'      => 'bc_bill',
@@ -200,13 +223,17 @@ class Reports {
 			)
 		);
 
+		if ( function_exists( 'bcl_prime_post_metas' ) ) {
+			bcl_prime_post_metas( wp_list_pluck( $payments, 'ID' ) );
+		}
+
 		$transactions = array();
 		foreach ( $payments as $bill ) {
 			$transactions[] = array(
 				'type'   => 'income',
 				'title'  => bcl_get_bill_display_title( (int) $bill->ID ),
-				'amount' => bcl_get_meta_float( $bill->ID, 'bc_amount_paid' ),
-				'date'   => bcl_get_meta_string( $bill->ID, 'bc_payment_date' ),
+				'amount' => bcl_get_meta_float( (int) $bill->ID, 'bc_amount_paid' ),
+				'date'   => bcl_get_meta_string( (int) $bill->ID, 'bc_payment_date' ),
 			);
 		}
 
@@ -221,12 +248,16 @@ class Reports {
 			)
 		);
 
+		if ( function_exists( 'bcl_prime_post_metas' ) ) {
+			bcl_prime_post_metas( wp_list_pluck( $expenses, 'ID' ) );
+		}
+
 		foreach ( $expenses as $expense ) {
 			$transactions[] = array(
 				'type'   => 'expense',
 				'title'  => $expense->post_title,
-				'amount' => bcl_get_meta_float( $expense->ID, 'bc_amount' ),
-				'date'   => bcl_get_meta_string( $expense->ID, 'bc_expense_date' ),
+				'amount' => bcl_get_meta_float( (int) $expense->ID, 'bc_amount' ),
+				'date'   => bcl_get_meta_string( (int) $expense->ID, 'bc_expense_date' ),
 			);
 		}
 
@@ -238,6 +269,30 @@ class Reports {
 		);
 
 		return array_slice( $transactions, 0, $limit );
+	}
+
+	/**
+	 * Income vs expense series for the last N months (for dashboard charts).
+	 *
+	 * @return array<int, array{month:string, label:string, income:float, expenses:float}>
+	 */
+	public function get_monthly_trend( int $months = 6 ): array {
+		$months = max( 1, min( 24, $months ) );
+		$series = array();
+		$expenses_obj = new Expenses();
+
+		for ( $i = $months - 1; $i >= 0; $i-- ) {
+			$month = gmdate( 'Y-m', strtotime( "-{$i} months" ) );
+			$range = $this->month_date_range( $month );
+			$series[] = array(
+				'month'    => $month,
+				'label'    => date_i18n( 'M y', strtotime( $month . '-01' ) ),
+				'income'   => $this->sum_collected( $range['start'], $range['end'] ),
+				'expenses' => $expenses_obj->sum_expenses( $range['start'], $range['end'] ),
+			);
+		}
+
+		return $series;
 	}
 
 	/**
@@ -284,17 +339,22 @@ class Reports {
 			)
 		);
 
+		// Prime all metas for these bills in 1 query (big win for column access).
+		if ( function_exists( 'bcl_prime_post_metas' ) ) {
+			bcl_prime_post_metas( wp_list_pluck( $bills, 'ID' ) );
+		}
+
 		$rows = array();
 		foreach ( $bills as $bill ) {
 			$rows[] = array(
 				'bill'       => bcl_get_bill_display_title( (int) $bill->ID ),
-				'month'      => bcl_format_billing_month( bcl_get_meta_string( $bill->ID, 'bc_billing_month' ) ),
-				'flat'       => bcl_get_flat_number( (int) bcl_get_meta_float( $bill->ID, 'bc_flat_id' ) ),
-				'occupancy'  => bcl_occupancy_statuses()[ bcl_get_meta_string( $bill->ID, 'bc_occupancy_status' ) ] ?? bcl_get_meta_string( $bill->ID, 'bc_occupancy_status' ),
-				'payable'    => bcl_get_meta_float( $bill->ID, 'bc_total_payable_amount' ),
-				'collected'  => bcl_get_meta_float( $bill->ID, 'bc_amount_paid' ),
-				'due'        => bcl_get_meta_float( $bill->ID, 'bc_remaining_due' ),
-				'status'     => bcl_get_meta_string( $bill->ID, 'bc_payment_status' ),
+				'month'      => bcl_format_billing_month( bcl_get_meta_string( (int) $bill->ID, 'bc_billing_month' ) ),
+				'flat'       => bcl_get_flat_number( (int) bcl_get_meta_float( (int) $bill->ID, 'bc_flat_id' ) ),
+				'occupancy'  => bcl_occupancy_statuses()[ bcl_get_meta_string( (int) $bill->ID, 'bc_occupancy_status' ) ] ?? bcl_get_meta_string( (int) $bill->ID, 'bc_occupancy_status' ),
+				'payable'    => bcl_get_meta_float( (int) $bill->ID, 'bc_total_payable_amount' ),
+				'collected'  => bcl_get_meta_float( (int) $bill->ID, 'bc_amount_paid' ),
+				'due'        => bcl_get_meta_float( (int) $bill->ID, 'bc_remaining_due' ),
+				'status'     => bcl_get_meta_string( (int) $bill->ID, 'bc_payment_status' ),
 			);
 		}
 
@@ -313,42 +373,26 @@ class Reports {
 			)
 		);
 
+		if ( function_exists( 'bcl_prime_post_metas' ) ) {
+			bcl_prime_post_metas( wp_list_pluck( $flats, 'ID' ) );
+		}
+
+		$totals = bcl_aggregate_bill_sums_by(
+			'bc_flat_id',
+			bcl_month_from_date( $start_date ),
+			bcl_month_from_date( $end_date )
+		);
+
 		$rows = array();
 		foreach ( $flats as $flat ) {
-			$bills = get_posts(
-				array(
-					'post_type'      => 'bc_bill',
-					'post_status'    => 'publish',
-					'posts_per_page' => -1,
-					'fields'         => 'ids',
-					'meta_query'     => array(
-						array(
-							'key'   => 'bc_flat_id',
-							'value' => $flat->ID,
-						),
-						array(
-							'key'     => 'bc_billing_month',
-							'value'   => array( bcl_month_from_date( $start_date ), bcl_month_from_date( $end_date ) ),
-							'compare' => 'BETWEEN',
-							'type'    => 'CHAR',
-						),
-					),
-				)
-			);
-
-			$collected = 0.0;
-			$due       = 0.0;
-			foreach ( $bills as $bill_id ) {
-				$collected += bcl_get_meta_float( (int) $bill_id, 'bc_amount_paid' );
-				$due       += bcl_get_meta_float( (int) $bill_id, 'bc_remaining_due' );
-			}
+			$flat_id = (int) $flat->ID;
 
 			$rows[] = array(
 				'flat'       => $flat->post_title,
-				'flat_no'    => bcl_get_meta_string( $flat->ID, 'bc_flat_number' ),
-				'building'   => get_the_title( (int) bcl_get_meta_float( $flat->ID, 'bc_building_id' ) ),
-				'collected'  => round( $collected, 2 ),
-				'due'        => round( $due, 2 ),
+				'flat_no'    => bcl_get_meta_string( $flat_id, 'bc_flat_number' ),
+				'building'   => get_the_title( (int) bcl_get_meta_float( $flat_id, 'bc_building_id' ) ),
+				'collected'  => $totals[ $flat_id ]['collected'] ?? 0.0,
+				'due'        => $totals[ $flat_id ]['due'] ?? 0.0,
 			);
 		}
 
@@ -367,42 +411,26 @@ class Reports {
 			)
 		);
 
+		if ( function_exists( 'bcl_prime_post_metas' ) ) {
+			bcl_prime_post_metas( wp_list_pluck( $residents, 'ID' ) );
+		}
+
+		$totals = bcl_aggregate_bill_sums_by(
+			'bc_resident_id',
+			bcl_month_from_date( $start_date ),
+			bcl_month_from_date( $end_date )
+		);
+
 		$rows = array();
 		foreach ( $residents as $resident ) {
-			$bills = get_posts(
-				array(
-					'post_type'      => 'bc_bill',
-					'post_status'    => 'publish',
-					'posts_per_page' => -1,
-					'fields'         => 'ids',
-					'meta_query'     => array(
-						array(
-							'key'   => 'bc_resident_id',
-							'value' => $resident->ID,
-						),
-						array(
-							'key'     => 'bc_billing_month',
-							'value'   => array( bcl_month_from_date( $start_date ), bcl_month_from_date( $end_date ) ),
-							'compare' => 'BETWEEN',
-							'type'    => 'CHAR',
-						),
-					),
-				)
-			);
-
-			$collected = 0.0;
-			$due       = 0.0;
-			foreach ( $bills as $bill_id ) {
-				$collected += bcl_get_meta_float( (int) $bill_id, 'bc_amount_paid' );
-				$due       += bcl_get_meta_float( (int) $bill_id, 'bc_remaining_due' );
-			}
+			$resident_id = (int) $resident->ID;
 
 			$rows[] = array(
 				'resident'  => $resident->post_title,
-				'mobile'    => bcl_get_meta_string( $resident->ID, 'bc_mobile' ),
-				'flat'      => get_the_title( (int) bcl_get_meta_float( $resident->ID, 'bc_assigned_flat_id' ) ),
-				'collected' => round( $collected, 2 ),
-				'due'       => round( $due, 2 ),
+				'mobile'    => bcl_get_meta_string( $resident_id, 'bc_mobile' ),
+				'flat'      => get_the_title( (int) bcl_get_meta_float( $resident_id, 'bc_assigned_flat_id' ) ),
+				'collected' => $totals[ $resident_id ]['collected'] ?? 0.0,
+				'due'       => $totals[ $resident_id ]['due'] ?? 0.0,
 			);
 		}
 
@@ -419,10 +447,15 @@ class Reports {
 				'post_status'    => 'publish',
 				'posts_per_page' => -1,
 				'meta_query'     => array(
+					'relation' => 'AND',
 					array(
 						'key'     => 'bc_payment_status',
 						'value'   => 'paid',
 						'compare' => '!=',
+					),
+					array(
+						'key'     => 'bc_carried_forward',
+						'compare' => 'NOT EXISTS',
 					),
 				),
 				'orderby'        => 'meta_value',
@@ -431,17 +464,21 @@ class Reports {
 			)
 		);
 
+		if ( function_exists( 'bcl_prime_post_metas' ) ) {
+			bcl_prime_post_metas( wp_list_pluck( $bills, 'ID' ) );
+		}
+
 		$rows = array();
 		foreach ( $bills as $bill ) {
 			$rows[] = array(
 				'bill'     => bcl_get_bill_display_title( (int) $bill->ID ),
-				'month'    => bcl_format_billing_month( bcl_get_meta_string( $bill->ID, 'bc_billing_month' ) ),
-				'flat'     => bcl_get_flat_number( (int) bcl_get_meta_float( $bill->ID, 'bc_flat_id' ) ),
-				'resident' => get_the_title( (int) bcl_get_meta_float( $bill->ID, 'bc_resident_id' ) ),
-				'payable'  => bcl_get_meta_float( $bill->ID, 'bc_total_payable_amount' ),
-				'paid'     => bcl_get_meta_float( $bill->ID, 'bc_amount_paid' ),
-				'due'      => bcl_get_meta_float( $bill->ID, 'bc_remaining_due' ),
-				'status'   => bcl_get_meta_string( $bill->ID, 'bc_payment_status' ),
+				'month'    => bcl_format_billing_month( bcl_get_meta_string( (int) $bill->ID, 'bc_billing_month' ) ),
+				'flat'     => bcl_get_flat_number( (int) bcl_get_meta_float( (int) $bill->ID, 'bc_flat_id' ) ),
+				'resident' => get_the_title( (int) bcl_get_meta_float( (int) $bill->ID, 'bc_resident_id' ) ),
+				'payable'  => bcl_get_meta_float( (int) $bill->ID, 'bc_total_payable_amount' ),
+				'paid'     => bcl_get_meta_float( (int) $bill->ID, 'bc_amount_paid' ),
+				'due'      => bcl_get_meta_float( (int) $bill->ID, 'bc_remaining_due' ),
+				'status'   => bcl_get_meta_string( (int) $bill->ID, 'bc_payment_status' ),
 			);
 		}
 

@@ -194,6 +194,12 @@ class Bills_List_Table extends \WP_List_Table {
 
 		$query = new \WP_Query( $args );
 		$this->items = $query->posts;
+
+		// Prime metas for the current page of bills (reduces dozens of get_post_meta calls).
+		if ( function_exists( 'bcl_prime_post_metas' ) && ! empty( $this->items ) ) {
+			bcl_prime_post_metas( wp_list_pluck( $this->items, 'ID' ) );
+		}
+
 		$this->set_pagination_args(
 			array(
 				'total_items' => (int) $query->found_posts,
@@ -380,6 +386,11 @@ class Recurring_Payments_List_Table extends \WP_List_Table {
 		);
 
 		$this->items = $query->posts;
+
+		if ( function_exists( 'bcl_prime_post_metas' ) && ! empty( $this->items ) ) {
+			bcl_prime_post_metas( wp_list_pluck( $this->items, 'ID' ) );
+		}
+
 		$this->set_pagination_args(
 			array(
 				'total_items' => (int) $query->found_posts,
@@ -424,6 +435,7 @@ class Admin_Pages {
 	 */
 	public function __construct() {
 		add_action( 'admin_menu', array( $this, 'register_menu' ) );
+		add_action( 'wp_ajax_bcl_load_panel', array( $this, 'ajax_load_panel' ) );
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_assets' ) );
 		add_action( 'admin_init', array( $this, 'register_settings' ) );
 		add_action( 'admin_notices', array( $this, 'admin_notices' ) );
@@ -485,7 +497,8 @@ class Admin_Pages {
 	}
 
 	/**
-	 * Register top-level admin menu and submenus.
+	 * Register a single top-level admin page. Everything else is rendered as
+	 * tabs inside it (see render_dashboard()).
 	 */
 	public function register_menu(): void {
 		add_menu_page(
@@ -497,18 +510,173 @@ class Admin_Pages {
 			'dashicons-building',
 			26
 		);
+	}
 
-		add_submenu_page( 'bcl-dashboard', __( 'Dashboard', 'buildingcare-lite' ), __( 'Dashboard', 'buildingcare-lite' ), 'bc_view_reports', 'bcl-dashboard', array( $this, 'render_dashboard' ) );
-		add_submenu_page( 'bcl-dashboard', __( 'Buildings', 'buildingcare-lite' ), __( 'Buildings', 'buildingcare-lite' ), 'bc_manage_buildings', 'edit.php?post_type=bc_building' );
-		add_submenu_page( 'bcl-dashboard', __( 'Flats', 'buildingcare-lite' ), __( 'Flats', 'buildingcare-lite' ), 'bc_manage_flats', 'edit.php?post_type=bc_flat' );
-		add_submenu_page( 'bcl-dashboard', __( 'Residents', 'buildingcare-lite' ), __( 'Residents', 'buildingcare-lite' ), 'bc_manage_residents', 'edit.php?post_type=bc_resident' );
-		add_submenu_page( 'bcl-dashboard', __( 'Bills & Payments', 'buildingcare-lite' ), __( 'Bills & Payments', 'buildingcare-lite' ), 'bc_manage_payments', 'bcl-bills', array( $this, 'render_bills_page' ) );
-		add_submenu_page( 'bcl-dashboard', __( 'All Bills', 'buildingcare-lite' ), __( 'All Bills', 'buildingcare-lite' ), 'bc_generate_bills', 'edit.php?post_type=bc_bill' );
-		add_submenu_page( 'bcl-dashboard', __( 'Expenses', 'buildingcare-lite' ), __( 'Expenses', 'buildingcare-lite' ), 'bc_manage_expenses', 'edit.php?post_type=bc_expense' );
-		add_submenu_page( 'bcl-dashboard', __( 'Recurring Expenses', 'buildingcare-lite' ), __( 'Recurring Expenses', 'buildingcare-lite' ), 'bc_manage_expenses', 'edit.php?post_type=bc_recurring_expense' );
-		add_submenu_page( 'bcl-dashboard', __( 'Reports', 'buildingcare-lite' ), __( 'Reports', 'buildingcare-lite' ), 'bc_view_reports', 'bcl-reports', array( $this, 'render_reports_page' ) );
-		add_submenu_page( 'bcl-dashboard', __( 'Settings', 'buildingcare-lite' ), __( 'Settings', 'buildingcare-lite' ), 'bc_manage_settings', 'bcl-settings', array( $this, 'render_settings_page' ) );
-		add_submenu_page( 'bcl-dashboard', __( 'Audit Log', 'buildingcare-lite' ), __( 'Audit Log', 'buildingcare-lite' ), 'bc_manage_settings', 'bcl-audit-log', array( $this, 'render_audit_log_page' ) );
+	/**
+	 * Tab definitions: slug => [label, capability].
+	 *
+	 * @return array<string, array{label:string, cap:string}>
+	 */
+	public function get_tabs(): array {
+		return array(
+			'overview'  => array( 'label' => __( 'Dashboard', 'buildingcare-lite' ), 'cap' => 'bc_view_reports' ),
+			'buildings' => array( 'label' => __( 'Buildings', 'buildingcare-lite' ), 'cap' => 'bc_manage_buildings' ),
+			'flats'     => array( 'label' => __( 'Flats', 'buildingcare-lite' ), 'cap' => 'bc_manage_flats' ),
+			'residents' => array( 'label' => __( 'Residents', 'buildingcare-lite' ), 'cap' => 'bc_manage_residents' ),
+			'bills'     => array( 'label' => __( 'Bills & Payments', 'buildingcare-lite' ), 'cap' => 'bc_manage_payments' ),
+			'expenses'  => array( 'label' => __( 'Expenses', 'buildingcare-lite' ), 'cap' => 'bc_manage_expenses' ),
+			'recurring' => array( 'label' => __( 'Recurring Expenses', 'buildingcare-lite' ), 'cap' => 'bc_manage_expenses' ),
+			'reports'   => array( 'label' => __( 'Reports', 'buildingcare-lite' ), 'cap' => 'bc_view_reports' ),
+			'settings'  => array( 'label' => __( 'Settings', 'buildingcare-lite' ), 'cap' => 'bc_manage_settings' ),
+			'audit'     => array( 'label' => __( 'Audit Log', 'buildingcare-lite' ), 'cap' => 'bc_manage_settings' ),
+		);
+	}
+
+	/**
+	 * Resolve the active tab from the request, falling back to the first allowed tab.
+	 */
+	private function current_tab(): string {
+		$tabs    = $this->get_tabs();
+		$request = isset( $_GET['tab'] ) ? sanitize_key( wp_unslash( $_GET['tab'] ) ) : 'overview';
+
+		if ( isset( $tabs[ $request ] ) && bcl_current_user_can( $tabs[ $request ]['cap'] ) ) {
+			return $request;
+		}
+
+		foreach ( $tabs as $slug => $tab ) {
+			if ( bcl_current_user_can( $tab['cap'] ) ) {
+				return $slug;
+			}
+		}
+
+		return 'overview';
+	}
+
+	/**
+	 * Render the tabbed dashboard shell and dispatch to the active tab.
+	 */
+	public function render_dashboard(): void {
+		if ( ! bcl_current_user_can( 'bc_view_reports' )
+			&& ! bcl_current_user_can( 'bc_manage_payments' )
+			&& ! bcl_current_user_can( 'bc_manage_expenses' ) ) {
+			wp_die( esc_html__( 'Permission denied.', 'buildingcare-lite' ) );
+		}
+
+		$active = $this->current_tab();
+		$tabs   = $this->get_tabs();
+		?>
+		<div class="wrap bcl-wrap bcl-app">
+			<h1 class="bcl-app-title">
+				<span class="dashicons dashicons-building"></span>
+				<?php esc_html_e( 'BuildingCare', 'buildingcare-lite' ); ?>
+			</h1>
+
+			<button type="button" class="bcl-menu-toggle" aria-expanded="false" aria-controls="bcl-tabs-nav">
+				<span class="dashicons dashicons-menu-alt2"></span>
+				<span class="bcl-menu-current"><?php echo esc_html( $tabs[ $active ]['label'] ?? __( 'Menu', 'buildingcare-lite' ) ); ?></span>
+				<span class="bcl-menu-caret dashicons dashicons-arrow-down-alt2"></span>
+			</button>
+
+			<nav id="bcl-tabs-nav" class="bcl-tabs">
+				<?php
+				foreach ( $tabs as $slug => $tab ) :
+					if ( ! bcl_current_user_can( $tab['cap'] ) ) {
+						continue;
+					}
+					$url = add_query_arg(
+						array(
+							'page' => 'bcl-dashboard',
+							'tab'  => $slug,
+						),
+						admin_url( 'admin.php' )
+					);
+					?>
+					<a class="bcl-tab <?php echo $active === $slug ? 'is-active' : ''; ?>" data-tab="<?php echo esc_attr( $slug ); ?>" href="<?php echo esc_url( $url ); ?>">
+						<?php echo esc_html( $tab['label'] ); ?>
+					</a>
+				<?php endforeach; ?>
+			</nav>
+
+			<div class="bcl-tab-panel">
+				<?php $this->render_tab_content( $active ); ?>
+			</div>
+		</div>
+		<?php
+	}
+
+	/**
+	 * Dispatch tab content.
+	 */
+	private function render_tab_content( string $tab ): void {
+		switch ( $tab ) {
+			case 'buildings':
+			case 'flats':
+			case 'residents':
+			case 'expenses':
+			case 'recurring':
+				( new Dashboard() )->render_entity_tab( $tab );
+				break;
+			case 'bills':
+				$this->render_bills_page();
+				break;
+			case 'reports':
+				$this->render_reports_page();
+				break;
+			case 'settings':
+				$this->render_settings_page();
+				break;
+			case 'audit':
+				$this->render_audit_log_page();
+				break;
+			case 'overview':
+			default:
+				$this->render_overview_tab();
+				break;
+		}
+	}
+
+	/**
+	 * AJAX: render a single tab panel without a full page reload.
+	 */
+	public function ajax_load_panel(): void {
+		check_ajax_referer( 'bcl_admin_nonce', 'nonce' );
+
+		$params = array();
+		if ( isset( $_POST['params'] ) && is_array( $_POST['params'] ) ) {
+			foreach ( wp_unslash( $_POST['params'] ) as $key => $value ) { // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+				$clean_key = sanitize_key( (string) $key );
+				if ( is_array( $value ) ) {
+					$params[ $clean_key ] = array_map( 'sanitize_text_field', array_map( 'strval', $value ) );
+				} else {
+					$params[ $clean_key ] = sanitize_text_field( (string) $value );
+				}
+			}
+		}
+
+		// Make the rendering routines (which read superglobals) see the request.
+		$_GET     = array_merge( $_GET, $params );
+		$_REQUEST = array_merge( $_REQUEST, $params );
+
+		// WP_List_Table builds pagination/sort URLs from REQUEST_URI; point it at
+		// the real dashboard page instead of admin-ajax.php.
+		$base_path = (string) wp_parse_url( admin_url( 'admin.php' ), PHP_URL_PATH );
+		$_SERVER['REQUEST_URI'] = add_query_arg(
+			array_merge( array( 'page' => 'bcl-dashboard' ), $params ),
+			$base_path
+		);
+
+		$tab = isset( $params['tab'] ) ? sanitize_key( $params['tab'] ) : 'overview';
+
+		ob_start();
+		$this->render_tab_content( $tab );
+		$html = ob_get_clean();
+
+		wp_send_json_success(
+			array(
+				'html' => $html,
+				'tab'  => $this->current_tab(),
+			)
+		);
 	}
 
 	/**
@@ -647,6 +815,8 @@ class Admin_Pages {
 			return;
 		}
 
+		wp_enqueue_media();
+
 		wp_enqueue_style(
 			'bcl-admin',
 			BCL_PLUGIN_URL . 'assets/css/admin.css',
@@ -679,6 +849,7 @@ class Admin_Pages {
 					'success'        => __( 'Payment recorded.', 'buildingcare-lite' ),
 					'collecting'     => __( 'Collecting...', 'buildingcare-lite' ),
 					'paying'         => __( 'Processing...', 'buildingcare-lite' ),
+					'confirmDelete'  => __( 'Delete this record? This cannot be undone.', 'buildingcare-lite' ),
 				),
 				'paymentMethods' => bcl_payment_methods(),
 			)
@@ -709,9 +880,16 @@ class Admin_Pages {
 	public function sanitize_settings( array $input ): array {
 		$current = bcl_get_settings();
 
-		$current['opening_balance']     = round( (float) ( $input['opening_balance'] ?? 0 ), 2 );
-		$current['default_building_id'] = absint( $input['default_building_id'] ?? 0 );
-		$current['currency_symbol']     = sanitize_text_field( $input['currency_symbol'] ?? '৳' );
+		$current['opening_balance']       = round( (float) ( $input['opening_balance'] ?? 0 ), 2 );
+		$current['default_building_id']   = absint( $input['default_building_id'] ?? 0 );
+		$current['currency_symbol']       = sanitize_text_field( $input['currency_symbol'] ?? '৳' );
+		$current['vacant_charge_percent'] = max( 0.0, min( 100.0, (float) ( $input['vacant_charge_percent'] ?? 50 ) ) );
+		$current['late_fee_amount']       = max( 0.0, round( (float) ( $input['late_fee_amount'] ?? 0 ), 2 ) );
+		$current['late_fee_type']         = in_array( $input['late_fee_type'] ?? 'fixed', array( 'fixed', 'percent' ), true ) ? (string) $input['late_fee_type'] : 'fixed';
+		$current['due_day']               = min( 28, max( 1, absint( $input['due_day'] ?? 10 ) ) );
+		$current['enable_emails']         = ! empty( $input['enable_emails'] ) ? 'yes' : 'no';
+		$current['enable_reminders']      = ! empty( $input['enable_reminders'] ) ? 'yes' : 'no';
+		$current['purge_on_uninstall']    = ! empty( $input['purge_on_uninstall'] ) ? 'yes' : 'no';
 
 		bcl_clear_dashboard_cache();
 		bcl_audit_log( 'settings_updated', __( 'Plugin settings updated', 'buildingcare-lite' ) );
@@ -723,8 +901,16 @@ class Admin_Pages {
 	 * Show admin notices.
 	 */
 	public function admin_notices(): void {
-		if ( ! isset( $_GET['page'] ) || 'bcl-bills' !== $_GET['page'] ) {
+		if ( ! isset( $_GET['page'] ) || 'bcl-dashboard' !== $_GET['page'] ) {
 			return;
+		}
+
+		if ( isset( $_GET['saved'] ) ) {
+			echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__( 'Record saved.', 'buildingcare-lite' ) . '</p></div>';
+		}
+
+		if ( isset( $_GET['deleted'] ) ) {
+			echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__( 'Record deleted.', 'buildingcare-lite' ) . '</p></div>';
 		}
 
 		if ( ! isset( $_GET['bills_created'] ) && ! isset( $_GET['recurring_created'] ) ) {
@@ -764,18 +950,23 @@ class Admin_Pages {
 	}
 
 	/**
-	 * Render dashboard page.
+	 * Render the overview (stats) tab.
 	 */
-	public function render_dashboard(): void {
+	public function render_overview_tab(): void {
 		if ( ! bcl_current_user_can( 'bc_view_reports' ) ) {
-			wp_die( esc_html__( 'Permission denied.', 'buildingcare-lite' ) );
+			echo '<p>' . esc_html__( 'You do not have access to the dashboard overview.', 'buildingcare-lite' ) . '</p>';
+			return;
 		}
 
 		$reports = new Reports();
 		$stats   = $reports->get_dashboard_stats();
+		$trend   = $reports->get_monthly_trend( 6 );
+		$trend_max = 0.0;
+		foreach ( $trend as $point ) {
+			$trend_max = max( $trend_max, (float) $point['income'], (float) $point['expenses'] );
+		}
 		?>
-		<div class="wrap bcl-wrap">
-			<h1><?php esc_html_e( 'BuildingCare Dashboard', 'buildingcare-lite' ); ?></h1>
+		<div class="bcl-tab-body">
 			<p class="bcl-subtitle"><?php echo esc_html( sprintf( __( 'Overview for %s', 'buildingcare-lite' ), $stats['month'] ) ); ?></p>
 
 			<div class="bcl-dashboard-grid">
@@ -837,6 +1028,29 @@ class Admin_Pages {
 				</table>
 			</div>
 
+			<div class="bcl-chart-section">
+				<h2><?php esc_html_e( 'Income vs Expense (last 6 months)', 'buildingcare-lite' ); ?></h2>
+				<div class="bcl-chart" role="img" aria-label="<?php esc_attr_e( 'Income versus expense chart', 'buildingcare-lite' ); ?>">
+					<?php foreach ( $trend as $point ) : ?>
+						<?php
+						$income_h  = $trend_max > 0 ? round( ( (float) $point['income'] / $trend_max ) * 100 ) : 0;
+						$expense_h = $trend_max > 0 ? round( ( (float) $point['expenses'] / $trend_max ) * 100 ) : 0;
+						?>
+						<div class="bcl-chart-col">
+							<div class="bcl-chart-bars">
+								<span class="bcl-bar bcl-bar-income" style="height: <?php echo esc_attr( (string) $income_h ); ?>%;" title="<?php echo esc_attr( bcl_format_amount( (float) $point['income'] ) ); ?>"></span>
+								<span class="bcl-bar bcl-bar-expense" style="height: <?php echo esc_attr( (string) $expense_h ); ?>%;" title="<?php echo esc_attr( bcl_format_amount( (float) $point['expenses'] ) ); ?>"></span>
+							</div>
+							<span class="bcl-chart-label"><?php echo esc_html( (string) $point['label'] ); ?></span>
+						</div>
+					<?php endforeach; ?>
+				</div>
+				<div class="bcl-chart-legend">
+					<span><i class="bcl-swatch bcl-swatch-income"></i><?php esc_html_e( 'Income', 'buildingcare-lite' ); ?></span>
+					<span><i class="bcl-swatch bcl-swatch-expense"></i><?php esc_html_e( 'Expense', 'buildingcare-lite' ); ?></span>
+				</div>
+			</div>
+
 			<div class="bcl-recent-transactions">
 				<h2><?php esc_html_e( 'Recent Transactions', 'buildingcare-lite' ); ?></h2>
 				<table class="widefat striped">
@@ -873,7 +1087,8 @@ class Admin_Pages {
 	 */
 	public function render_bills_page(): void {
 		if ( ! bcl_current_user_can( 'bc_manage_payments' ) && ! bcl_current_user_can( 'bc_manage_expenses' ) ) {
-			wp_die( esc_html__( 'Permission denied.', 'buildingcare-lite' ) );
+			echo '<p>' . esc_html__( 'Permission denied.', 'buildingcare-lite' ) . '</p>';
+			return;
 		}
 
 		$bills_table = new Bills_List_Table();
@@ -888,8 +1103,7 @@ class Admin_Pages {
 		$can_generate_bills     = bcl_current_user_can( 'bc_generate_bills' );
 		$can_generate_recurring = bcl_current_user_can( 'bc_manage_expenses' );
 		?>
-		<div class="wrap bcl-wrap bcl-page-bills">
-			<h1><?php esc_html_e( 'Bills & Payments', 'buildingcare-lite' ); ?></h1>
+		<div class="bcl-tab-body bcl-page-bills">
 			<p class="bcl-subtitle"><?php esc_html_e( 'Generate monthly bills and collect payments in one click — no manual amount entry needed.', 'buildingcare-lite' ); ?></p>
 
 			<?php if ( $can_generate_bills || $can_generate_recurring ) : ?>
@@ -922,10 +1136,19 @@ class Admin_Pages {
 					<div class="bcl-panel-header">
 						<h2 class="bcl-panel-title"><?php esc_html_e( 'Service Charge Collection', 'buildingcare-lite' ); ?></h2>
 						<p class="bcl-panel-desc"><?php esc_html_e( 'Flat service charge bills — click Collect Payment to record the full due amount instantly.', 'buildingcare-lite' ); ?></p>
+						<p class="bcl-collect-method-wrap">
+							<label for="bcl-collect-method"><?php esc_html_e( 'Default collection method:', 'buildingcare-lite' ); ?></label>
+							<select id="bcl-collect-method">
+								<?php foreach ( bcl_payment_methods() as $key => $label ) : ?>
+									<option value="<?php echo esc_attr( $key ); ?>"><?php echo esc_html( $label ); ?></option>
+								<?php endforeach; ?>
+							</select>
+						</p>
 					</div>
 
 					<form method="get" class="bcl-list-form">
-						<input type="hidden" name="page" value="bcl-bills">
+						<input type="hidden" name="page" value="bcl-dashboard">
+						<input type="hidden" name="tab" value="bills">
 						<div class="bcl-filter-bar">
 							<div class="bcl-filter-bar__field">
 								<label class="bcl-field-label" for="bcl-bills-month"><?php esc_html_e( 'Month', 'buildingcare-lite' ); ?></label>
@@ -962,7 +1185,8 @@ class Admin_Pages {
 					</div>
 
 					<form method="get" class="bcl-list-form">
-						<input type="hidden" name="page" value="bcl-bills">
+						<input type="hidden" name="page" value="bcl-dashboard">
+						<input type="hidden" name="tab" value="bills">
 						<input type="hidden" name="billing_month" value="<?php echo esc_attr( $month ); ?>">
 						<div class="bcl-filter-bar">
 							<div class="bcl-filter-bar__field">
@@ -1015,7 +1239,8 @@ class Admin_Pages {
 	 */
 	public function render_reports_page(): void {
 		if ( ! bcl_current_user_can( 'bc_view_reports' ) ) {
-			wp_die( esc_html__( 'Permission denied.', 'buildingcare-lite' ) );
+			echo '<p>' . esc_html__( 'Permission denied.', 'buildingcare-lite' ) . '</p>';
+			return;
 		}
 
 		$report_types = array(
@@ -1027,8 +1252,7 @@ class Admin_Pages {
 			'income_vs_expense' => __( 'Income vs Expense', 'buildingcare-lite' ),
 		);
 		?>
-		<div class="wrap bcl-wrap bcl-page-reports">
-			<h1><?php esc_html_e( 'Reports', 'buildingcare-lite' ); ?></h1>
+		<div class="bcl-tab-body bcl-page-reports">
 			<p class="bcl-subtitle"><?php esc_html_e( 'Analyze collections, dues, expenses, and building performance across any time period.', 'buildingcare-lite' ); ?></p>
 
 			<div class="bcl-panel bcl-report-toolbar-panel">
@@ -1086,13 +1310,13 @@ class Admin_Pages {
 	 */
 	public function render_settings_page(): void {
 		if ( ! bcl_current_user_can( 'bc_manage_settings' ) ) {
-			wp_die( esc_html__( 'Permission denied.', 'buildingcare-lite' ) );
+			echo '<p>' . esc_html__( 'Permission denied.', 'buildingcare-lite' ) . '</p>';
+			return;
 		}
 
 		$settings = bcl_get_settings();
 		?>
-		<div class="wrap bcl-wrap bcl-page-settings">
-			<h1><?php esc_html_e( 'BuildingCare Settings', 'buildingcare-lite' ); ?></h1>
+		<div class="bcl-tab-body bcl-page-settings">
 			<p class="bcl-subtitle"><?php esc_html_e( 'Configure opening balance, currency, and default building for your account.', 'buildingcare-lite' ); ?></p>
 
 			<div class="bcl-panel bcl-settings-panel">
@@ -1121,6 +1345,55 @@ class Admin_Pages {
 								</select>
 							</td>
 						</tr>
+						<tr>
+							<th scope="row"><label for="vacant_charge_percent"><?php esc_html_e( 'Vacant Flat Charge (%)', 'buildingcare-lite' ); ?></label></th>
+							<td>
+								<input type="number" step="1" min="0" max="100" name="bcl_settings[vacant_charge_percent]" id="vacant_charge_percent" value="<?php echo esc_attr( (string) $settings['vacant_charge_percent'] ); ?>" class="small-text">
+								<p class="description"><?php esc_html_e( 'Percentage of the service charge billed to vacant flats.', 'buildingcare-lite' ); ?></p>
+							</td>
+						</tr>
+						<tr>
+							<th scope="row"><label for="due_day"><?php esc_html_e( 'Payment Due Day', 'buildingcare-lite' ); ?></label></th>
+							<td>
+								<input type="number" step="1" min="1" max="28" name="bcl_settings[due_day]" id="due_day" value="<?php echo esc_attr( (string) $settings['due_day'] ); ?>" class="small-text">
+								<p class="description"><?php esc_html_e( 'Day of the billing month that payment is due (1–28).', 'buildingcare-lite' ); ?></p>
+							</td>
+						</tr>
+						<tr>
+							<th scope="row"><label for="late_fee_amount"><?php esc_html_e( 'Late Fee', 'buildingcare-lite' ); ?></label></th>
+							<td>
+								<input type="number" step="0.01" min="0" name="bcl_settings[late_fee_amount]" id="late_fee_amount" value="<?php echo esc_attr( (string) $settings['late_fee_amount'] ); ?>" class="small-text">
+								<select name="bcl_settings[late_fee_type]" id="late_fee_type">
+									<option value="fixed" <?php selected( $settings['late_fee_type'], 'fixed' ); ?>><?php esc_html_e( 'Fixed amount', 'buildingcare-lite' ); ?></option>
+									<option value="percent" <?php selected( $settings['late_fee_type'], 'percent' ); ?>><?php esc_html_e( 'Percent of overdue', 'buildingcare-lite' ); ?></option>
+								</select>
+								<p class="description"><?php esc_html_e( 'Applied to a new bill when it carries an unpaid balance forward. Set 0 to disable.', 'buildingcare-lite' ); ?></p>
+							</td>
+						</tr>
+						<tr>
+							<th scope="row"><?php esc_html_e( 'Email Notifications', 'buildingcare-lite' ); ?></th>
+							<td>
+								<label>
+									<input type="checkbox" name="bcl_settings[enable_emails]" value="1" <?php checked( $settings['enable_emails'], 'yes' ); ?>>
+									<?php esc_html_e( 'Email residents a receipt when a payment is recorded.', 'buildingcare-lite' ); ?>
+								</label>
+								<br>
+								<label>
+									<input type="checkbox" name="bcl_settings[enable_reminders]" value="1" <?php checked( $settings['enable_reminders'], 'yes' ); ?>>
+									<?php esc_html_e( 'Send daily due/overdue payment reminders to residents.', 'buildingcare-lite' ); ?>
+								</label>
+							</td>
+						</tr>
+						<tr>
+							<th scope="row"><?php esc_html_e( 'Data Cleanup', 'buildingcare-lite' ); ?></th>
+							<td>
+								<label>
+									<input type="checkbox" name="bcl_settings[purge_on_uninstall]" value="1" <?php checked( $settings['purge_on_uninstall'], 'yes' ); ?>>
+									<?php esc_html_e( 'Delete all BuildingCare data (buildings, flats, residents, bills, expenses, payments) when the plugin is uninstalled.', 'buildingcare-lite' ); ?>
+								</label>
+								<p class="description"><?php esc_html_e( 'Warning: this permanently removes all records on plugin deletion.', 'buildingcare-lite' ); ?></p>
+							</td>
+						</tr>
 					</table>
 					<div class="bcl-settings-actions">
 						<?php submit_button( __( 'Save Settings', 'buildingcare-lite' ) ); ?>
@@ -1136,14 +1409,17 @@ class Admin_Pages {
 	 */
 	public function render_audit_log_page(): void {
 		if ( ! bcl_current_user_can( 'bc_manage_settings' ) ) {
-			wp_die( esc_html__( 'Permission denied.', 'buildingcare-lite' ) );
+			echo '<p>' . esc_html__( 'Permission denied.', 'buildingcare-lite' ) . '</p>';
+			return;
 		}
 
 		$logs = get_option( 'bcl_audit_log', array() );
-		$logs = is_array( $logs ) ? array_reverse( $logs ) : array();
+		$logs = is_array( $logs ) ? $logs : array();
+		// Keep only recent without full reverse in memory for display (slice first).
+		$logs = array_slice( array_reverse( $logs ), 0, 100 );
 		?>
-		<div class="wrap bcl-wrap">
-			<h1><?php esc_html_e( 'Audit Log', 'buildingcare-lite' ); ?></h1>
+		<div class="bcl-tab-body">
+			<p class="bcl-subtitle"><?php esc_html_e( 'Recent activity across bills, payments, expenses, and settings.', 'buildingcare-lite' ); ?></p>
 			<table class="widefat striped">
 				<thead>
 					<tr>
@@ -1160,7 +1436,7 @@ class Admin_Pages {
 						<?php foreach ( array_slice( $logs, 0, 100 ) as $entry ) : ?>
 							<tr>
 								<td><?php echo esc_html( (string) ( $entry['time'] ?? '' ) ); ?></td>
-								<td><?php echo esc_html( get_userdata( (int) ( $entry['user_id'] ?? 0 ) )->display_name ?? '—' ); ?></td>
+								<td><?php echo esc_html( bcl_get_audit_user_name( (int) ( $entry['user_id'] ?? 0 ) ) ); ?></td>
 								<td><?php echo esc_html( (string) ( $entry['action'] ?? '' ) ); ?></td>
 								<td><?php echo esc_html( (string) ( $entry['message'] ?? '' ) ); ?></td>
 							</tr>

@@ -6,16 +6,164 @@
 
 	var currentBillId = 0;
 
+	/* -------------------------------------------------------------------------
+	 * AJAX tab navigation (no full page reload).
+	 * ---------------------------------------------------------------------- */
+
+	function getCurrentParams() {
+		var params = {};
+		var search = window.location.search.replace(/^\?/, '');
+		if (search) {
+			search.split('&').forEach(function (pair) {
+				var kv = pair.split('=');
+				if (kv[0]) {
+					params[decodeURIComponent(kv[0])] = decodeURIComponent((kv[1] || '').replace(/\+/g, ' '));
+				}
+			});
+		}
+		params.page = 'bcl-dashboard';
+		return params;
+	}
+
+	function buildUrl(params) {
+		params = $.extend({}, params, { page: 'bcl-dashboard' });
+		return window.location.pathname + '?' + $.param(params);
+	}
+
+	function paramsFromUrl(url) {
+		var a = document.createElement('a');
+		a.href = url;
+		var params = {};
+		a.search.replace(/^\?/, '').split('&').forEach(function (pair) {
+			if (!pair) {
+				return;
+			}
+			var kv = pair.split('=');
+			params[decodeURIComponent(kv[0])] = decodeURIComponent((kv[1] || '').replace(/\+/g, ' '));
+		});
+		return params;
+	}
+
+	function loadPanel(params, push) {
+		var $panel = $('.bcl-tab-panel');
+		if (!$panel.length) {
+			return;
+		}
+
+		$panel.addClass('bcl-loading');
+
+		$.ajax({
+			url: bclAdmin.ajaxUrl,
+			type: 'POST',
+			data: { action: 'bcl_load_panel', nonce: bclAdmin.nonce, params: params },
+		})
+			.done(function (resp) {
+				if (resp && resp.success) {
+					$panel.html(resp.data.html);
+					$('.bcl-tab').removeClass('is-active');
+					var $activeTab = $('.bcl-tab[data-tab="' + resp.data.tab + '"]').addClass('is-active');
+					if ($activeTab.length) {
+						$('.bcl-menu-current').text($activeTab.text().trim());
+					}
+					if (push !== false) {
+						window.history.pushState({ bcl: true }, '', buildUrl(params));
+					}
+					$('html, body').animate({ scrollTop: Math.max(0, $('.bcl-tabs').offset().top - 40) }, 150);
+				} else {
+					window.location.reload();
+				}
+			})
+			.fail(function () {
+				window.location.reload();
+			})
+			.always(function () {
+				$panel.removeClass('bcl-loading');
+			});
+	}
+
+	function reloadPanel() {
+		loadPanel(getCurrentParams(), false);
+	}
+
+	function closeMobileMenu() {
+		$('#bcl-tabs-nav').removeClass('is-open');
+		$('.bcl-menu-toggle').attr('aria-expanded', 'false');
+	}
+
+	// Mobile hamburger toggle.
+	$(document).on('click', '.bcl-menu-toggle', function (e) {
+		e.preventDefault();
+		var $nav = $('#bcl-tabs-nav');
+		var open = $nav.toggleClass('is-open').hasClass('is-open');
+		$(this).attr('aria-expanded', open ? 'true' : 'false');
+	});
+
+	// Close the mobile menu when tapping outside it.
+	$(document).on('click', function (e) {
+		if (!$(e.target).closest('.bcl-menu-toggle, #bcl-tabs-nav').length) {
+			closeMobileMenu();
+		}
+	});
+
+	// Tab clicks.
+	$(document).on('click', '.bcl-tab', function (e) {
+		e.preventDefault();
+		var slug = $(this).data('tab');
+		$('.bcl-menu-current').text($(this).text().trim());
+		closeMobileMenu();
+		loadPanel({ tab: slug }, true);
+	});
+
+	// In-panel navigation links pointing back to the dashboard (Add/Edit/Back/pagination).
+	$(document).on('click', '.bcl-tab-panel a', function (e) {
+		var href = $(this).attr('href') || '';
+		if (href.indexOf('page=bcl-dashboard') === -1) {
+			return; // external / admin-post links navigate normally.
+		}
+		if ($(this).hasClass('bcl-delete-entity')) {
+			return; // handled by its own confirm + full navigation.
+		}
+		e.preventDefault();
+		loadPanel(paramsFromUrl(href), true);
+	});
+
+	// GET filter/search forms inside the panel.
+	$(document).on('submit', '.bcl-list-search, .bcl-list-form', function (e) {
+		e.preventDefault();
+		var params = {};
+		$.each($(this).serializeArray(), function (i, field) {
+			if (params[field.name] !== undefined) {
+				if (!$.isArray(params[field.name])) {
+					params[field.name] = [params[field.name]];
+				}
+				params[field.name].push(field.value);
+			} else {
+				params[field.name] = field.value;
+			}
+		});
+		params.page = 'bcl-dashboard';
+		loadPanel(params, true);
+	});
+
+	window.addEventListener('popstate', function () {
+		loadPanel(getCurrentParams(), false);
+	});
+
+	/* -------------------------------------------------------------------------
+	 * Payments & expenses (delegated so they survive panel swaps).
+	 * ---------------------------------------------------------------------- */
+
 	function postAjax(action, data) {
 		data = data || {};
 		data.action = action;
 		data.nonce = bclAdmin.nonce;
 
-		return $.ajax({
-			url: bclAdmin.ajaxUrl,
-			type: 'POST',
-			data: data,
-		});
+		return $.ajax({ url: bclAdmin.ajaxUrl, type: 'POST', data: data });
+	}
+
+	function selectedCollectMethod() {
+		var $method = $('#bcl-collect-method');
+		return $method.length ? $method.val() : 'cash';
 	}
 
 	function showModal() {
@@ -38,47 +186,24 @@
 		$button.prop('disabled', false).text($button.data('original-text') || $button.text());
 	}
 
-	function reloadSoon() {
-		window.location.reload();
+	function collectFull(e) {
+		e.preventDefault();
+		var $button = $(this);
+		setButtonLoading($button, bclAdmin.i18n.collecting);
+
+		postAjax('bcl_collect_payment', {
+			bill_id: $button.data('bill-id'),
+			payment_method: selectedCollectMethod(),
+			mark_full: 1,
+		})
+			.done(reloadPanel)
+			.fail(function () {
+				resetButton($button);
+				window.alert(bclAdmin.i18n.error);
+			});
 	}
 
-	// One-click full collection — no confirm, no manual amount.
-	$(document).on('click', '.bcl-collect-payment', function (e) {
-		e.preventDefault();
-
-		var $button = $(this);
-		setButtonLoading($button, bclAdmin.i18n.collecting);
-
-		postAjax('bcl_collect_payment', {
-			bill_id: $button.data('bill-id'),
-			payment_method: 'cash',
-			mark_full: 1,
-		})
-			.done(reloadSoon)
-			.fail(function () {
-				resetButton($button);
-				window.alert(bclAdmin.i18n.error);
-			});
-	});
-
-	// Legacy mark-paid support (no confirmation).
-	$(document).on('click', '.bcl-mark-paid', function (e) {
-		e.preventDefault();
-
-		var $button = $(this);
-		setButtonLoading($button, bclAdmin.i18n.collecting);
-
-		postAjax('bcl_collect_payment', {
-			bill_id: $button.data('bill-id'),
-			payment_method: 'cash',
-			mark_full: 1,
-		})
-			.done(reloadSoon)
-			.fail(function () {
-				resetButton($button);
-				window.alert(bclAdmin.i18n.error);
-			});
-	});
+	$(document).on('click', '.bcl-collect-payment, .bcl-mark-paid', collectFull);
 
 	$(document).on('click', '.bcl-record-payment', function (e) {
 		e.preventDefault();
@@ -88,9 +213,9 @@
 		showModal();
 	});
 
-	$('#bcl-payment-cancel').on('click', hideModal);
+	$(document).on('click', '#bcl-payment-cancel', hideModal);
 
-	$('#bcl-payment-submit').on('click', function () {
+	$(document).on('click', '#bcl-payment-submit', function () {
 		var amount = parseFloat($('#bcl-payment-amount').val()) || 0;
 		var method = $('#bcl-payment-method').val();
 
@@ -106,47 +231,35 @@
 		})
 			.done(function () {
 				hideModal();
-				reloadSoon();
+				reloadPanel();
 			})
 			.fail(function () {
 				window.alert(bclAdmin.i18n.error);
 			});
 	});
 
-	// One-click recurring expense payment.
-	$(document).on('click', '.bcl-pay-recurring', function (e) {
+	function payRecurring(e) {
 		e.preventDefault();
-
 		var $button = $(this);
 		setButtonLoading($button, bclAdmin.i18n.paying);
 
 		postAjax('bcl_pay_recurring_expense', {
 			expense_id: $button.data('expense-id'),
 		})
-			.done(reloadSoon)
+			.done(reloadPanel)
 			.fail(function () {
 				resetButton($button);
 				window.alert(bclAdmin.i18n.error);
 			});
-	});
+	}
 
-	$(document).on('click', '.bcl-mark-expense-paid', function (e) {
-		e.preventDefault();
+	$(document).on('click', '.bcl-pay-recurring, .bcl-mark-expense-paid', payRecurring);
 
-		var $button = $(this);
-		setButtonLoading($button, bclAdmin.i18n.paying);
+	/* -------------------------------------------------------------------------
+	 * Misc UI (delegated).
+	 * ---------------------------------------------------------------------- */
 
-		postAjax('bcl_pay_recurring_expense', {
-			expense_id: $button.data('expense-id'),
-		})
-			.done(reloadSoon)
-			.fail(function () {
-				resetButton($button);
-				window.alert(bclAdmin.i18n.error);
-			});
-	});
-
-	$('.bcl-upload-attachment').on('click', function (e) {
+	$(document).on('click', '.bcl-upload-attachment', function (e) {
 		e.preventDefault();
 
 		var frame = wp.media({
@@ -164,10 +277,20 @@
 		frame.open();
 	});
 
-	$('#bcl-date-filter').on('change', function () {
+	$(document).on('click', '.bcl-delete-entity', function (e) {
+		if (!window.confirm(bclAdmin.i18n.confirmDelete || 'Delete this record?')) {
+			e.preventDefault();
+		}
+	});
+
+	$(document).on('change', '#bcl-date-filter', function () {
 		var isCustom = $(this).val() === 'custom';
 		$('.bcl-custom-date-field').prop('hidden', !isCustom);
 	});
+
+	/* -------------------------------------------------------------------------
+	 * Reports.
+	 * ---------------------------------------------------------------------- */
 
 	function renderReportTable(rows) {
 		var $table = $('#bcl-report-table');
@@ -201,7 +324,7 @@
 		});
 	}
 
-	$('#bcl-load-report').on('click', function () {
+	$(document).on('click', '#bcl-load-report', function () {
 		postAjax('bcl_get_report_data', {
 			report_type: $('#bcl-report-type').val(),
 			date_filter: $('#bcl-date-filter').val(),
@@ -218,7 +341,7 @@
 			});
 	});
 
-	$('#bcl-export-csv').on('click', function () {
+	$(document).on('click', '#bcl-export-csv', function () {
 		if (!bclAdmin.exportNonce) {
 			window.alert(bclAdmin.i18n.error);
 			return;

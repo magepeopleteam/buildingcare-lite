@@ -150,12 +150,33 @@ class Meta_Boxes {
 		$this->render_select( 'bc_occupancy_status', __( 'Occupancy', 'buildingcare-lite' ), bcl_occupancy_statuses(), bcl_get_meta_string( $post->ID, 'bc_occupancy_status' ) ?: 'occupied' );
 		$this->render_field( 'bc_service_charge_amount', __( 'Service Charge', 'buildingcare-lite' ), (string) bcl_get_meta_float( $post->ID, 'bc_service_charge_amount' ), 'number', '0.01' );
 		$this->render_field( 'bc_previous_due_amount', __( 'Previous Due', 'buildingcare-lite' ), (string) bcl_get_meta_float( $post->ID, 'bc_previous_due_amount' ), 'number', '0.01' );
+		$this->render_field( 'bc_late_fee_amount', __( 'Late Fee', 'buildingcare-lite' ), (string) bcl_get_meta_float( $post->ID, 'bc_late_fee_amount' ), 'number', '0.01' );
 		$this->render_field( 'bc_total_payable_amount', __( 'Total Payable', 'buildingcare-lite' ), (string) bcl_get_meta_float( $post->ID, 'bc_total_payable_amount' ), 'number', '0.01' );
 		$this->render_field( 'bc_amount_paid', __( 'Amount Paid', 'buildingcare-lite' ), (string) bcl_get_meta_float( $post->ID, 'bc_amount_paid' ), 'number', '0.01' );
 		$this->render_field( 'bc_remaining_due', __( 'Remaining Due', 'buildingcare-lite' ), (string) bcl_get_meta_float( $post->ID, 'bc_remaining_due' ), 'number', '0.01' );
 		$this->render_field( 'bc_payment_date', __( 'Payment Date', 'buildingcare-lite' ), bcl_get_meta_string( $post->ID, 'bc_payment_date' ), 'date' );
 		$this->render_select( 'bc_payment_method', __( 'Payment Method', 'buildingcare-lite' ), bcl_payment_methods(), bcl_get_meta_string( $post->ID, 'bc_payment_method' ) );
 		$this->render_select( 'bc_payment_status', __( 'Payment Status', 'buildingcare-lite' ), bcl_payment_statuses(), bcl_get_meta_string( $post->ID, 'bc_payment_status' ) ?: 'unpaid' );
+
+		if ( 'yes' === bcl_get_meta_string( $post->ID, 'bc_carried_forward' ) ) {
+			echo '<p><em>' . esc_html__( 'This bill was carried forward into a later bill.', 'buildingcare-lite' ) . '</em></p>';
+		}
+
+		$history = class_exists( __NAMESPACE__ . '\\Payments' ) ? Payments::for_bill( $post->ID ) : array();
+		if ( ! empty( $history ) ) {
+			$methods = bcl_payment_methods();
+			echo '<p><strong>' . esc_html__( 'Payment History', 'buildingcare-lite' ) . '</strong></p>';
+			echo '<ul class="bcl-payment-history">';
+			foreach ( $history as $entry ) {
+				printf(
+					'<li>%1$s — %2$s <span>(%3$s)</span></li>',
+					esc_html( (string) $entry['date'] ),
+					esc_html( bcl_format_amount( (float) $entry['amount'] ) ),
+					esc_html( $methods[ $entry['method'] ] ?? (string) $entry['method'] )
+				);
+			}
+			echo '</ul>';
+		}
 	}
 
 	/**
@@ -245,6 +266,9 @@ class Meta_Boxes {
 		update_post_meta( $post_id, 'bc_total_floors', absint( $_POST['bc_total_floors'] ?? 0 ) );
 		update_post_meta( $post_id, 'bc_status', sanitize_key( $_POST['bc_status'] ?? 'active' ) );
 		bcl_clear_dashboard_cache();
+		if ( function_exists( 'bcl_invalidate_options_caches' ) ) {
+			bcl_invalidate_options_caches();
+		}
 	}
 
 	/**
@@ -265,6 +289,9 @@ class Meta_Boxes {
 		update_post_meta( $post_id, 'bc_monthly_service_charge', round( (float) ( $_POST['bc_monthly_service_charge'] ?? 0 ), 2 ) );
 		update_post_meta( $post_id, 'bc_occupancy_status', sanitize_key( $_POST['bc_occupancy_status'] ?? 'vacant' ) );
 		bcl_clear_dashboard_cache();
+		if ( function_exists( 'bcl_invalidate_options_caches' ) ) {
+			bcl_invalidate_options_caches();
+		}
 	}
 
 	/**
@@ -304,19 +331,14 @@ class Meta_Boxes {
 
 		$service_charge = round( (float) ( $_POST['bc_service_charge_amount'] ?? 0 ), 2 );
 		$previous_due   = round( (float) ( $_POST['bc_previous_due_amount'] ?? 0 ), 2 );
+		$late_fee       = round( (float) ( $_POST['bc_late_fee_amount'] ?? 0 ), 2 );
 		$amount_paid    = round( (float) ( $_POST['bc_amount_paid'] ?? 0 ), 2 );
-		$total_payable  = round( $service_charge + $previous_due, 2 );
-		$remaining_due  = max( 0, round( $total_payable - $amount_paid, 2 ) );
-		$status         = sanitize_key( $_POST['bc_payment_status'] ?? 'unpaid' );
+		$total_payable  = round( $service_charge + $previous_due + $late_fee, 2 );
 
-		if ( $remaining_due <= 0 && $amount_paid > 0 ) {
-			$status         = 'paid';
-			$remaining_due  = 0;
-		} elseif ( $amount_paid > 0 && $remaining_due > 0 ) {
-			$status = 'partial';
-		} elseif ( $amount_paid <= 0 ) {
-			$status = 'unpaid';
-		}
+		$state          = bcl_compute_payment_state( $total_payable, $amount_paid );
+		$amount_paid    = $state['amount_paid'];
+		$remaining_due  = $state['remaining_due'];
+		$status         = $state['payment_status'];
 
 		update_post_meta( $post_id, 'bc_building_id', absint( $_POST['bc_building_id'] ?? 0 ) );
 		update_post_meta( $post_id, 'bc_flat_id', absint( $_POST['bc_flat_id'] ?? 0 ) );
@@ -325,6 +347,7 @@ class Meta_Boxes {
 		update_post_meta( $post_id, 'bc_occupancy_status', sanitize_key( $_POST['bc_occupancy_status'] ?? 'occupied' ) );
 		update_post_meta( $post_id, 'bc_service_charge_amount', $service_charge );
 		update_post_meta( $post_id, 'bc_previous_due_amount', $previous_due );
+		update_post_meta( $post_id, 'bc_late_fee_amount', $late_fee );
 		update_post_meta( $post_id, 'bc_total_payable_amount', $total_payable );
 		update_post_meta( $post_id, 'bc_amount_paid', $amount_paid );
 		update_post_meta( $post_id, 'bc_remaining_due', $remaining_due );

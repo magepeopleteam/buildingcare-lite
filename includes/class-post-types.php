@@ -55,6 +55,10 @@ class Post_Types {
 		add_action( 'load-post-new.php', array( $this, 'block_manual_bill_creation' ) );
 		add_filter( 'the_title', array( $this, 'filter_bill_list_title' ), 10, 2 );
 		add_filter( 'wp_list_table_class_name', array( $this, 'filter_posts_list_table_class' ), 10, 2 );
+
+		// Invalidate select caches when buildings/flats/residents change.
+		add_action( 'save_post', array( $this, 'maybe_invalidate_caches_on_save' ), 20, 2 );
+		add_action( 'delete_post', array( $this, 'maybe_invalidate_caches_on_delete' ), 20 );
 	}
 
 	/**
@@ -733,6 +737,28 @@ class Post_Types {
 				$active = bcl_get_meta_string( $post_id, 'bc_active_status' ) === 'yes';
 				echo esc_html( $active ? __( 'Yes', 'buildingcare-lite' ) : __( 'No', 'buildingcare-lite' ) );
 				break;
+		}
+	}
+
+	/**
+	 * Invalidate option caches for relevant CPT saves.
+	 */
+	public function maybe_invalidate_caches_on_save( int $post_id, \WP_Post $post ): void {
+		if ( in_array( $post->post_type, array( 'bc_building', 'bc_flat', 'bc_resident' ), true ) ) {
+			if ( function_exists( 'bcl_invalidate_options_caches' ) ) {
+				bcl_invalidate_options_caches();
+			}
+			bcl_clear_dashboard_cache();
+		}
+	}
+
+	public function maybe_invalidate_caches_on_delete( int $post_id ): void {
+		$post = get_post( $post_id );
+		if ( $post && in_array( $post->post_type, array( 'bc_building', 'bc_flat', 'bc_resident' ), true ) ) {
+			if ( function_exists( 'bcl_invalidate_options_caches' ) ) {
+				bcl_invalidate_options_caches();
+			}
+			bcl_clear_dashboard_cache();
 		}
 	}
 }

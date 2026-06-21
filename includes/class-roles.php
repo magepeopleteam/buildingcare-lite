@@ -160,6 +160,14 @@ class Roles {
 			return array( 'do_not_allow' );
 		}
 
+		if ( 'bc_create_payments' === $cap ) {
+			if ( bcl_is_payment_insert_allowed() ) {
+				return array( 'exist' );
+			}
+
+			return array( 'do_not_allow' );
+		}
+
 		if ( $this->user_is_super_admin( $user_id ) ) {
 			if ( $this->is_plugin_capability( $cap, $args ) ) {
 				return array( 'exist' );

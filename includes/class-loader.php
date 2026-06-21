@@ -40,20 +40,40 @@ final class Loader {
 	public function init(): void {
 		$this->load_files();
 		$this->load_textdomain();
+		add_action( 'admin_init', array( $this, 'maybe_upgrade' ) );
 
 		new Post_Types();
 		new Roles();
 		new Meta_Boxes();
 		new Cron();
+		new Payments();
 		new Billing();
 		new Expenses();
 		new Reports();
 		new Export();
+		new Notifications();
 		new Rest_Api();
 
 		if ( is_admin() ) {
 			new Admin_Pages();
+			new Dashboard();
 		}
+	}
+
+	/**
+	 * Run version-gated upgrade routines when the stored DB version is behind.
+	 */
+	public function maybe_upgrade(): void {
+		$stored = (string) get_option( 'bcl_db_version', '' );
+		if ( $stored === BCL_VERSION ) {
+			return;
+		}
+
+		// Ensure roles/capabilities are refreshed and cron is scheduled after an update.
+		( new Roles() )->register_roles();
+		Cron::schedule_events();
+
+		update_option( 'bcl_db_version', BCL_VERSION );
 	}
 
 	/**
@@ -66,15 +86,18 @@ final class Loader {
 			'class-roles.php',
 			'class-meta-boxes.php',
 			'class-cron.php',
+			'class-payments.php',
 			'class-billing.php',
 			'class-expenses.php',
 			'class-reports.php',
 			'class-export.php',
+			'class-notifications.php',
 			'class-rest-api.php',
 		);
 
 		if ( is_admin() ) {
 			$files[] = 'class-admin-pages.php';
+			$files[] = 'class-dashboard.php';
 		}
 
 		foreach ( $files as $file ) {
@@ -101,16 +124,21 @@ final class Loader {
 		require_once BCL_PLUGIN_DIR . 'includes/class-post-types.php';
 		require_once BCL_PLUGIN_DIR . 'includes/class-roles.php';
 		require_once BCL_PLUGIN_DIR . 'includes/class-cron.php';
+		require_once BCL_PLUGIN_DIR . 'includes/class-payments.php';
 
 		$post_types = new Post_Types();
 		$post_types->register_post_types();
 		$post_types->register_taxonomies();
 		$post_types->seed_expense_categories();
 
+		( new Payments() )->register_post_type();
+
 		$roles = new Roles();
 		$roles->register_roles();
 
 		Cron::schedule_events();
+
+		update_option( 'bcl_db_version', BCL_VERSION );
 
 		flush_rewrite_rules();
 	}
@@ -120,7 +148,9 @@ final class Loader {
 	 */
 	public static function deactivate(): void {
 		require_once BCL_PLUGIN_DIR . 'includes/class-cron.php';
+		require_once BCL_PLUGIN_DIR . 'includes/class-notifications.php';
 		Cron::clear_events();
+		Notifications::clear_events();
 		flush_rewrite_rules();
 	}
 }

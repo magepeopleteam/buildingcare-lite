@@ -1735,6 +1735,277 @@ body.bcl-admin .bcl-page-settings .bcl-settings-actions .submit {
 	padding: 0;
 }
 
+/* Single-page app shell */
+.bcl-app .bcl-app-title {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	margin: 0 0 4px;
+	font-size: 23px;
+}
+
+.bcl-app .bcl-app-title .dashicons {
+	font-size: 28px;
+	width: 28px;
+	height: 28px;
+	color: #2271b1;
+}
+
+.bcl-tabs {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 2px;
+	margin: 16px 0 0;
+	border-bottom: 1px solid #c3c4c7;
+}
+
+.bcl-tabs .bcl-tab {
+	padding: 10px 16px;
+	text-decoration: none;
+	color: #50575e;
+	font-weight: 500;
+	border: 1px solid transparent;
+	border-bottom: none;
+	border-radius: 6px 6px 0 0;
+	margin-bottom: -1px;
+	transition: background 0.15s ease, color 0.15s ease;
+}
+
+.bcl-tabs .bcl-tab:hover {
+	color: #2271b1;
+	background: #f0f6fc;
+}
+
+.bcl-tabs .bcl-tab.is-active {
+	background: #fff;
+	color: #1d2327;
+	border-color: #c3c4c7;
+	border-bottom-color: #fff;
+}
+
+.bcl-tab-panel {
+	background: #fff;
+	border: 1px solid #c3c4c7;
+	border-top: none;
+	border-radius: 0 0 8px 8px;
+	padding: 24px;
+}
+
+.bcl-tab-body {
+	margin: 0;
+}
+
+.bcl-list-header {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 16px;
+	margin-bottom: 16px;
+}
+
+.bcl-section-title {
+	margin: 0;
+	font-size: 18px;
+}
+
+.bcl-add-new {
+	display: inline-flex !important;
+	align-items: center;
+	gap: 4px;
+}
+
+.bcl-list-search {
+	margin-bottom: 12px;
+}
+
+.bcl-list-search .search-box {
+	display: flex;
+	gap: 6px;
+	margin: 0;
+}
+
+.bcl-data-table {
+	border-radius: 6px;
+	overflow: hidden;
+}
+
+.bcl-data-table th {
+	font-weight: 600;
+}
+
+.bcl-data-table .bcl-col-actions {
+	width: 1%;
+	white-space: nowrap;
+	text-align: right;
+}
+
+.bcl-data-table .button-link-delete {
+	color: #b32d2e;
+}
+
+.bcl-pagination {
+	margin-top: 14px;
+	text-align: right;
+}
+
+.bcl-pagination .page-numbers {
+	display: inline-block;
+	padding: 4px 10px;
+	margin-left: 2px;
+	border: 1px solid #c3c4c7;
+	border-radius: 4px;
+	text-decoration: none;
+	color: #2271b1;
+}
+
+.bcl-pagination .page-numbers.current {
+	background: #2271b1;
+	color: #fff;
+	border-color: #2271b1;
+}
+
+/* Entity form */
+.bcl-entity-form {
+	padding: 24px;
+}
+
+.bcl-form-grid {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 18px 24px;
+}
+
+.bcl-form-row {
+	margin: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+}
+
+.bcl-form-row--full {
+	grid-column: 1 / -1;
+}
+
+.bcl-form-row label {
+	font-size: 13px;
+}
+
+.bcl-form-actions {
+	margin-top: 22px;
+	padding-top: 18px;
+	border-top: 1px solid #f0f0f1;
+	display: flex;
+	gap: 10px;
+}
+
+.bcl-payment-history {
+	margin: 4px 0 0;
+	padding-left: 18px;
+	list-style: disc;
+}
+
+.bcl-payment-history li span {
+	color: #646970;
+}
+
+.bcl-collect-method-wrap {
+	margin: 8px 0 0;
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+
+@media screen and (max-width: 782px) {
+	.bcl-form-grid {
+		grid-template-columns: 1fr;
+	}
+
+	.bcl-tab-panel {
+		padding: 16px;
+	}
+}
+
+.bcl-chart-section {
+	margin: 24px 0;
+	padding: 20px;
+	background: #fff;
+	border: 1px solid #e2e4e7;
+	border-radius: 8px;
+}
+
+.bcl-chart {
+	display: flex;
+	align-items: flex-end;
+	gap: 18px;
+	height: 220px;
+	padding: 12px 8px 0;
+}
+
+.bcl-chart-col {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: flex-end;
+	flex: 1 1 0;
+	height: 100%;
+}
+
+.bcl-chart-bars {
+	display: flex;
+	align-items: flex-end;
+	gap: 6px;
+	width: 100%;
+	height: 100%;
+	justify-content: center;
+}
+
+.bcl-chart-bars .bcl-bar {
+	display: block;
+	width: 26px;
+	min-height: 2px;
+	border-radius: 4px 4px 0 0;
+	transition: height 0.3s ease;
+}
+
+.bcl-chart-bars .bcl-bar-income {
+	background: #2271b1;
+}
+
+.bcl-chart-bars .bcl-bar-expense {
+	background: #d63638;
+}
+
+.bcl-chart-label {
+	margin-top: 8px;
+	font-size: 12px;
+	color: #50575e;
+}
+
+.bcl-chart-legend {
+	display: flex;
+	gap: 20px;
+	margin-top: 14px;
+	font-size: 13px;
+	color: #50575e;
+}
+
+.bcl-chart-legend .bcl-swatch {
+	display: inline-block;
+	width: 12px;
+	height: 12px;
+	border-radius: 3px;
+	margin-right: 6px;
+	vertical-align: middle;
+}
+
+.bcl-chart-legend .bcl-swatch-income {
+	background: #2271b1;
+}
+
+.bcl-chart-legend .bcl-swatch-expense {
+	background: #d63638;
+}
+
 @media screen and (max-width: 782px) {
 	body.bcl-admin .bcl-page-reports .bcl-report-filters {
 		grid-template-columns: 1fr;
@@ -1755,5 +2026,234 @@ body.bcl-admin .bcl-page-settings .bcl-settings-actions .submit {
 
 	body.bcl-admin .bcl-page-settings .bcl-settings-table td {
 		padding: 0 0 20px;
+	}
+}
+
+/* -------------------------------------------------------------------------
+ * AJAX panel loading state.
+ * ---------------------------------------------------------------------- */
+.bcl-tab-panel {
+	position: relative;
+	min-height: 120px;
+	transition: opacity 0.15s ease;
+}
+
+.bcl-tab-panel.bcl-loading {
+	opacity: 0.45;
+	pointer-events: none;
+}
+
+.bcl-tab-panel.bcl-loading::after {
+	content: "";
+	position: absolute;
+	top: 28px;
+	left: 50%;
+	width: 28px;
+	height: 28px;
+	margin-left: -14px;
+	border: 3px solid #c3c4c7;
+	border-top-color: #2271b1;
+	border-radius: 50%;
+	animation: bcl-spin 0.7s linear infinite;
+}
+
+@keyframes bcl-spin {
+	to {
+		transform: rotate(360deg);
+	}
+}
+
+/* -------------------------------------------------------------------------
+ * Mobile responsiveness for the single-page dashboard.
+ * ---------------------------------------------------------------------- */
+/* Hamburger menu toggle — hidden on desktop, shown on mobile only. */
+.bcl-menu-toggle {
+	display: none;
+}
+
+@media screen and (max-width: 960px) and (min-width: 783px) {
+	.bcl-tabs {
+		flex-wrap: nowrap;
+		overflow-x: auto;
+		-webkit-overflow-scrolling: touch;
+		scrollbar-width: thin;
+	}
+
+	.bcl-tabs .bcl-tab {
+		white-space: nowrap;
+		flex: 0 0 auto;
+	}
+}
+
+@media screen and (max-width: 782px) {
+	.bcl-app .bcl-app-title {
+		font-size: 20px;
+	}
+
+	/* Mobile hamburger menu */
+	.bcl-menu-toggle {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		width: 100%;
+		margin-top: 12px;
+		padding: 12px 14px;
+		background: #fff;
+		border: 1px solid #c3c4c7;
+		border-radius: 8px;
+		font-size: 15px;
+		font-weight: 600;
+		color: #1d2327;
+		cursor: pointer;
+		box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+	}
+
+	.bcl-menu-toggle .dashicons-menu-alt2 {
+		color: #2271b1;
+	}
+
+	.bcl-menu-toggle .bcl-menu-current {
+		flex: 1 1 auto;
+		text-align: left;
+	}
+
+	.bcl-menu-toggle .bcl-menu-caret {
+		margin-left: auto;
+		color: #646970;
+		transition: transform 0.2s ease;
+	}
+
+	.bcl-menu-toggle[aria-expanded="true"] .bcl-menu-caret {
+		transform: rotate(180deg);
+	}
+
+	.bcl-tabs {
+		display: none;
+		flex-direction: column;
+		gap: 0;
+		margin-top: 8px;
+		border: 1px solid #c3c4c7;
+		border-radius: 8px;
+		overflow: hidden;
+		background: #fff;
+		box-shadow: 0 6px 18px rgba(0, 0, 0, 0.10);
+	}
+
+	.bcl-tabs.is-open {
+		display: flex;
+	}
+
+	.bcl-tabs .bcl-tab {
+		margin: 0;
+		padding: 14px 16px;
+		border: none;
+		border-bottom: 1px solid #f0f0f1;
+		border-radius: 0;
+		font-size: 15px;
+	}
+
+	.bcl-tabs .bcl-tab:last-child {
+		border-bottom: none;
+	}
+
+	.bcl-tabs .bcl-tab.is-active {
+		background: #f0f6fc;
+		color: #2271b1;
+		border-bottom-color: #f0f0f1;
+	}
+
+	.bcl-tab-panel {
+		padding: 14px;
+		margin-top: 10px;
+		border-top: 1px solid #c3c4c7;
+		border-radius: 8px;
+	}
+
+	/* Stacked list/section headers and action buttons. */
+	.bcl-list-header {
+		flex-direction: column;
+		align-items: stretch;
+	}
+
+	.bcl-list-header .bcl-add-new,
+	.bcl-list-header .button {
+		width: 100%;
+		justify-content: center;
+		text-align: center;
+	}
+
+	.bcl-list-search .search-box {
+		flex-direction: column;
+	}
+
+	.bcl-list-search .search-box input[type="search"],
+	.bcl-list-search .search-box .button {
+		width: 100%;
+	}
+
+	/* Horizontal scroll for wide tables instead of breaking the layout. */
+	.bcl-tab-panel .widefat,
+	.bcl-tab-panel .bcl-data-table,
+	.bcl-tab-panel #bcl-report-table {
+		display: block;
+		width: 100%;
+		overflow-x: auto;
+		white-space: nowrap;
+		-webkit-overflow-scrolling: touch;
+	}
+
+	.bcl-data-table .bcl-col-actions {
+		text-align: left;
+	}
+
+	.bcl-data-table .bcl-col-actions .button {
+		margin: 2px 4px 2px 0;
+	}
+
+	/* Stack filter bars. */
+	.bcl-filter-bar {
+		flex-direction: column;
+		align-items: stretch;
+		gap: 12px;
+	}
+
+	.bcl-filter-bar__field,
+	.bcl-filter-bar__actions {
+		width: 100%;
+	}
+
+	.bcl-filter-bar__field input,
+	.bcl-filter-bar__field select {
+		width: 100%;
+	}
+
+	/* Entity form: single column + full-width actions. */
+	.bcl-form-grid {
+		grid-template-columns: 1fr;
+	}
+
+	.bcl-form-actions {
+		flex-direction: column;
+	}
+
+	.bcl-form-actions .button {
+		width: 100%;
+		text-align: center;
+	}
+
+	/* Payment modal fits small screens. */
+	#bcl-payment-modal .bcl-modal-content {
+		width: 92vw;
+		max-width: 92vw;
+	}
+}
+
+@media screen and (max-width: 600px) {
+	.bcl-tab-panel {
+		padding: 12px 10px;
+	}
+
+	.bcl-pagination {
+		text-align: center;
 	}
 }
