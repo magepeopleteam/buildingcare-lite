@@ -39,6 +39,8 @@ if ( $purge_posts ) {
 		'bc_expense',
 		'bc_recurring_expense',
 		'bc_payment',
+		'bc_ticket',
+		'bc_notice',
 	);
 
 	foreach ( $post_types as $post_type ) {

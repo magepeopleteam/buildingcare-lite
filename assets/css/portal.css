@@ -268,3 +268,38 @@ body.bcl-portal {
 	body.bcl-portal { background: #fff; }
 	.bcl-p-card { border: none; box-shadow: none; }
 }
+
+/* -------------------------------------------------------------------------
+ * v1.5.0 — Notices & maintenance requests tabs.
+ * ---------------------------------------------------------------------- */
+/* Allow more than four tabs to scroll horizontally instead of cramping. */
+.bcl-p-tabs {
+	flex-wrap: nowrap;
+	overflow-x: auto;
+	-webkit-overflow-scrolling: touch;
+	scrollbar-width: none;
+}
+.bcl-p-tabs::-webkit-scrollbar { display: none; }
+.bcl-p-tab { flex: 0 0 auto; min-width: 84px; }
+
+/* Notice cards */
+.bcl-p-notice.is-pinned { border-color: var(--bcl-p-primary); box-shadow: 0 1px 6px rgba(34, 113, 177, 0.15); }
+.bcl-p-notice .bcl-p-pin { font-size: 14px; }
+.bcl-p-notice-body { margin: 0 0 8px; line-height: 1.5; font-size: 14px; }
+
+/* Ticket status badges */
+.bcl-p-tstatus--open { background: #fdecec; color: var(--bcl-p-danger); }
+.bcl-p-tstatus--in_progress { background: #fff4e5; color: #bf6a02; }
+.bcl-p-tstatus--resolved { background: #e6f4ea; color: var(--bcl-p-success); }
+.bcl-p-tstatus--closed { background: #eef0f2; color: var(--bcl-p-muted); }
+
+/* Request form selects/textarea match the existing form inputs. */
+.bcl-p-form select,
+.bcl-p-form textarea {
+	padding: 12px 14px;
+	border: 1px solid var(--bcl-p-border);
+	border-radius: 10px;
+	font-size: 15px;
+	font-family: inherit;
+	width: 100%;
+}

@@ -37,6 +37,8 @@ class Roles {
 			'bc_generate_bills'     => true,
 			'bc_manage_payments'    => true,
 			'bc_manage_expenses'    => true,
+			'bc_manage_tickets'     => true,
+			'bc_manage_notices'     => true,
 			'bc_view_reports'       => true,
 			'bc_manage_settings'    => true,
 			'read'                  => true,
@@ -45,6 +47,7 @@ class Roles {
 		$manager_caps = array(
 			'bc_manage_payments' => true,
 			'bc_manage_expenses' => true,
+			'bc_manage_tickets'  => true,
 			'bc_view_reports'    => true,
 			'read'               => true,
 		);
@@ -109,6 +112,8 @@ class Roles {
 			'bill'               => 'bills',
 			'expense'            => 'expenses',
 			'recurring_expense'  => 'recurring_expenses',
+			'ticket'             => 'tickets',
+			'notice'             => 'notices',
 		);
 
 		foreach ( $types as $singular => $plural ) {
@@ -133,7 +138,7 @@ class Roles {
 	 * @param \WP_Role $role Role object.
 	 */
 	private function assign_limited_post_type_caps( \WP_Role $role ): void {
-		$types = array( 'bill', 'bills', 'expense', 'expenses' );
+		$types = array( 'bill', 'bills', 'expense', 'expenses', 'ticket', 'tickets' );
 
 		foreach ( $types as $type ) {
 			$role->add_cap( "bc_edit_{$type}" );
@@ -262,6 +267,8 @@ class Roles {
 			'bc_bill'              => array( 'bc_generate_bills', 'bc_manage_payments' ),
 			'bc_expense'           => array( 'bc_manage_expenses' ),
 			'bc_recurring_expense' => array( 'bc_manage_expenses' ),
+			'bc_ticket'            => array( 'bc_manage_tickets' ),
+			'bc_notice'            => array( 'bc_manage_notices' ),
 		);
 
 		return $map[ $post_type ] ?? array();

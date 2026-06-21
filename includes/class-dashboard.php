@@ -146,6 +146,50 @@ class Dashboard {
 					array( 'key' => 'bc_active_status', 'label' => __( 'Active', 'buildingcare-lite' ), 'type' => 'select', 'options' => 'yes_no', 'default' => 'yes' ),
 				),
 			),
+			'maintenance' => array(
+				'post_type'   => 'bc_ticket',
+				'cap'         => 'bc_manage_tickets',
+				'singular'    => __( 'Request', 'buildingcare-lite' ),
+				'plural'      => __( 'Maintenance Requests', 'buildingcare-lite' ),
+				'title_label' => __( 'Subject', 'buildingcare-lite' ),
+				'nonce'       => array( 'bcl_save_ticket', 'bcl_ticket_nonce' ),
+				'filter'      => array( 'key' => 'bc_ticket_status', 'label' => __( 'Status', 'buildingcare-lite' ), 'options' => 'ticket_statuses' ),
+				'columns'     => array(
+					'post_title'         => __( 'Subject', 'buildingcare-lite' ),
+					'bc_flat_id'         => __( 'Flat', 'buildingcare-lite' ),
+					'bc_ticket_category' => __( 'Category', 'buildingcare-lite' ),
+					'bc_ticket_priority' => __( 'Priority', 'buildingcare-lite' ),
+					'bc_ticket_status'   => __( 'Status', 'buildingcare-lite' ),
+				),
+				'fields'      => array(
+					array( 'key' => 'bc_flat_id', 'label' => __( 'Flat', 'buildingcare-lite' ), 'type' => 'select', 'options' => 'flats' ),
+					array( 'key' => 'bc_resident_id', 'label' => __( 'Resident', 'buildingcare-lite' ), 'type' => 'select', 'options' => 'residents' ),
+					array( 'key' => 'bc_ticket_category', 'label' => __( 'Category', 'buildingcare-lite' ), 'type' => 'select', 'options' => 'ticket_categories', 'default' => 'other' ),
+					array( 'key' => 'bc_ticket_priority', 'label' => __( 'Priority', 'buildingcare-lite' ), 'type' => 'select', 'options' => 'ticket_priorities', 'default' => 'normal' ),
+					array( 'key' => 'bc_ticket_status', 'label' => __( 'Status', 'buildingcare-lite' ), 'type' => 'select', 'options' => 'ticket_statuses', 'default' => 'open' ),
+					array( 'key' => 'bc_description', 'label' => __( 'Description', 'buildingcare-lite' ), 'type' => 'textarea' ),
+					array( 'key' => 'bc_admin_response', 'label' => __( 'Response to Resident', 'buildingcare-lite' ), 'type' => 'textarea' ),
+				),
+			),
+			'notices'   => array(
+				'post_type'   => 'bc_notice',
+				'cap'         => 'bc_manage_notices',
+				'singular'    => __( 'Notice', 'buildingcare-lite' ),
+				'plural'      => __( 'Notices', 'buildingcare-lite' ),
+				'title_label' => __( 'Title', 'buildingcare-lite' ),
+				'nonce'       => array( 'bcl_save_notice', 'bcl_notice_nonce' ),
+				'columns'     => array(
+					'post_title'     => __( 'Title', 'buildingcare-lite' ),
+					'bc_notice_body' => __( 'Message', 'buildingcare-lite' ),
+					'bc_pinned'      => __( 'Pinned', 'buildingcare-lite' ),
+					'bc_expires_on'  => __( 'Expires', 'buildingcare-lite' ),
+				),
+				'fields'      => array(
+					array( 'key' => 'bc_notice_body', 'label' => __( 'Message', 'buildingcare-lite' ), 'type' => 'textarea' ),
+					array( 'key' => 'bc_pinned', 'label' => __( 'Pin to top', 'buildingcare-lite' ), 'type' => 'select', 'options' => 'yes_no', 'default' => 'no' ),
+					array( 'key' => 'bc_expires_on', 'label' => __( 'Expires On (optional)', 'buildingcare-lite' ), 'type' => 'date' ),
+				),
+			),
 		);
 	}
 
@@ -203,17 +247,30 @@ class Dashboard {
 		$paged  = isset( $_GET['paged'] ) ? max( 1, absint( $_GET['paged'] ) ) : 1;
 		$search = isset( $_GET['s'] ) ? sanitize_text_field( wp_unslash( $_GET['s'] ) ) : '';
 
-		$query = new \WP_Query(
-			array(
-				'post_type'      => $entity['post_type'],
-				'post_status'    => 'publish',
-				'posts_per_page' => self::PER_PAGE,
-				'paged'          => $paged,
-				's'              => $search,
-				'orderby'        => 'title',
-				'order'          => 'ASC',
-			)
+		$filter_val = '';
+		$query_args = array(
+			'post_type'      => $entity['post_type'],
+			'post_status'    => 'publish',
+			'posts_per_page' => self::PER_PAGE,
+			'paged'          => $paged,
+			's'              => $search,
+			'orderby'        => 'title',
+			'order'          => 'ASC',
 		);
+
+		if ( ! empty( $entity['filter'] ) ) {
+			$filter_val = isset( $_GET['fval'] ) ? sanitize_key( wp_unslash( $_GET['fval'] ) ) : '';
+			if ( '' !== $filter_val ) {
+				$query_args['meta_query'] = array(
+					array(
+						'key'   => $entity['filter']['key'],
+						'value' => $filter_val,
+					),
+				);
+			}
+		}
+
+		$query = new \WP_Query( $query_args );
 
 		if ( function_exists( __NAMESPACE__ . '\\bcl_prime_post_metas' ) && ! empty( $query->posts ) ) {
 			bcl_prime_post_metas( wp_list_pluck( $query->posts, 'ID' ) );
@@ -246,6 +303,15 @@ class Dashboard {
 				<input type="hidden" name="page" value="bcl-dashboard">
 				<input type="hidden" name="tab" value="<?php echo esc_attr( $tab ); ?>">
 				<p class="search-box">
+					<?php if ( ! empty( $entity['filter'] ) ) : ?>
+						<label class="screen-reader-text" for="bcl-list-filter"><?php echo esc_html( (string) $entity['filter']['label'] ); ?></label>
+						<select name="fval" id="bcl-list-filter">
+							<option value=""><?php echo esc_html( sprintf( /* translators: %s: filter label */ __( 'All %s', 'buildingcare-lite' ), strtolower( (string) $entity['filter']['label'] ) ) ); ?></option>
+							<?php foreach ( $this->options_for( (string) $entity['filter']['options'] ) as $fkey => $flabel ) : ?>
+								<option value="<?php echo esc_attr( (string) $fkey ); ?>" <?php selected( $filter_val, (string) $fkey ); ?>><?php echo esc_html( $flabel ); ?></option>
+							<?php endforeach; ?>
+						</select>
+					<?php endif; ?>
 					<input type="search" name="s" value="<?php echo esc_attr( $search ); ?>" placeholder="<?php esc_attr_e( 'Search…', 'buildingcare-lite' ); ?>">
 					<button type="submit" class="button"><?php esc_html_e( 'Search', 'buildingcare-lite' ); ?></button>
 				</p>
@@ -279,7 +345,7 @@ class Dashboard {
 				</tbody>
 			</table>
 
-			<?php $this->render_pagination( $tab, $query, $paged, $search ); ?>
+			<?php $this->render_pagination( $tab, $query, $paged, $search, $filter_val ); ?>
 		</div>
 		<?php
 	}
@@ -287,14 +353,19 @@ class Dashboard {
 	/**
 	 * Pagination links.
 	 */
-	private function render_pagination( string $tab, \WP_Query $query, int $paged, string $search ): void {
+	private function render_pagination( string $tab, \WP_Query $query, int $paged, string $search, string $filter_val = '' ): void {
 		if ( $query->max_num_pages <= 1 ) {
 			return;
 		}
 
+		$base_args = array( 's' => $search );
+		if ( '' !== $filter_val ) {
+			$base_args['fval'] = $filter_val;
+		}
+
 		$links = paginate_links(
 			array(
-				'base'      => $this->url( $tab, array( 's' => $search ) ) . '%_%',
+				'base'      => $this->url( $tab, $base_args ) . '%_%',
 				'format'    => '&paged=%#%',
 				'current'   => $paged,
 				'total'     => (int) $query->max_num_pages,
@@ -323,8 +394,30 @@ class Dashboard {
 				);
 			case 'bc_building_id':
 			case 'bc_assigned_flat_id':
+			case 'bc_flat_id':
+			case 'bc_resident_id':
 				$linked = (int) bcl_get_meta_float( $post_id, $col );
 				return $linked ? esc_html( get_the_title( $linked ) ) : '—';
+			case 'bc_ticket_status':
+				$status = bcl_get_meta_string( $post_id, 'bc_ticket_status' );
+				$label  = bcl_ticket_statuses()[ $status ] ?? ( $status ?: '—' );
+				return '<span class="bcl-status bcl-ticket-status-' . esc_attr( $status ) . '">' . esc_html( $label ) . '</span>';
+			case 'bc_ticket_priority':
+				$priority = bcl_get_meta_string( $post_id, 'bc_ticket_priority' );
+				return esc_html( bcl_ticket_priorities()[ $priority ] ?? ( $priority ?: '—' ) );
+			case 'bc_ticket_category':
+				$category = bcl_get_meta_string( $post_id, 'bc_ticket_category' );
+				return esc_html( bcl_ticket_categories()[ $category ] ?? ( $category ?: '—' ) );
+			case 'bc_pinned':
+				return bcl_get_meta_string( $post_id, 'bc_pinned' ) === 'yes'
+					? esc_html__( 'Yes', 'buildingcare-lite' )
+					: esc_html__( 'No', 'buildingcare-lite' );
+			case 'bc_expires_on':
+				$expires = bcl_get_meta_string( $post_id, 'bc_expires_on' );
+				return $expires ? esc_html( $expires ) : '—';
+			case 'bc_notice_body':
+				$body = bcl_get_meta_string( $post_id, 'bc_notice_body' );
+				return $body ? esc_html( wp_trim_words( $body, 12 ) ) : '—';
 			case 'bc_status':
 				$status = bcl_get_meta_string( $post_id, 'bc_status' );
 				return esc_html( bcl_building_statuses()[ $status ] ?? ( $status ?: '—' ) );
@@ -473,6 +566,14 @@ class Dashboard {
 				return bcl_get_buildings_options();
 			case 'flats':
 				return bcl_get_flats_options();
+			case 'residents':
+				return bcl_get_residents_options();
+			case 'ticket_statuses':
+				return bcl_ticket_statuses();
+			case 'ticket_categories':
+				return bcl_ticket_categories();
+			case 'ticket_priorities':
+				return bcl_ticket_priorities();
 			case 'yes_no':
 				return array(
 					'yes' => __( 'Yes', 'buildingcare-lite' ),

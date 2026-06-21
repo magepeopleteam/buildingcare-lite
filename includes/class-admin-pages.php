@@ -445,6 +445,7 @@ class Admin_Pages {
 		add_filter( 'use_block_editor_for_post_type', array( $this, 'disable_block_editor' ), 10, 2 );
 		add_filter( 'admin_body_class', array( $this, 'admin_body_class' ) );
 		add_filter( 'wp_insert_post_data', array( $this, 'sync_bill_title' ), 10, 2 );
+		add_action( 'wp_dashboard_setup', array( $this, 'register_dashboard_widget' ) );
 	}
 
 	/**
@@ -526,8 +527,11 @@ class Admin_Pages {
 			'bills'     => array( 'label' => __( 'Bills & Payments', 'buildingcare-lite' ), 'cap' => 'bc_manage_payments' ),
 			'expenses'  => array( 'label' => __( 'Expenses', 'buildingcare-lite' ), 'cap' => 'bc_manage_expenses' ),
 			'recurring' => array( 'label' => __( 'Recurring Expenses', 'buildingcare-lite' ), 'cap' => 'bc_manage_expenses' ),
+			'maintenance' => array( 'label' => __( 'Maintenance', 'buildingcare-lite' ), 'cap' => 'bc_manage_tickets' ),
+			'notices'   => array( 'label' => __( 'Notices', 'buildingcare-lite' ), 'cap' => 'bc_manage_notices' ),
 			'reports'   => array( 'label' => __( 'Reports', 'buildingcare-lite' ), 'cap' => 'bc_view_reports' ),
 			'settings'  => array( 'label' => __( 'Settings', 'buildingcare-lite' ), 'cap' => 'bc_manage_settings' ),
+			'import'    => array( 'label' => __( 'Import', 'buildingcare-lite' ), 'cap' => 'bc_manage_settings' ),
 			'audit'     => array( 'label' => __( 'Audit Log', 'buildingcare-lite' ), 'cap' => 'bc_manage_settings' ),
 		);
 	}
@@ -618,6 +622,8 @@ class Admin_Pages {
 			case 'residents':
 			case 'expenses':
 			case 'recurring':
+			case 'maintenance':
+			case 'notices':
 				( new Dashboard() )->render_entity_tab( $tab );
 				break;
 			case 'bills':
@@ -628,6 +634,9 @@ class Admin_Pages {
 				break;
 			case 'settings':
 				$this->render_settings_page();
+				break;
+			case 'import':
+				$this->render_import_page();
 				break;
 			case 'audit':
 				$this->render_audit_log_page();
@@ -930,6 +939,33 @@ class Admin_Pages {
 			) . '</p></div>';
 		}
 
+		if ( isset( $_GET['charge_added'] ) ) {
+			if ( '1' === $_GET['charge_added'] ) {
+				echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__( 'One-off charge added to the bill.', 'buildingcare-lite' ) . '</p></div>';
+			} else {
+				echo '<div class="notice notice-error is-dismissible"><p>' . esc_html__( 'Could not add the one-off charge. Check the flat, label, and amount.', 'buildingcare-lite' ) . '</p></div>';
+			}
+		}
+
+		if ( isset( $_GET['imp_error'] ) ) {
+			echo '<div class="notice notice-error is-dismissible"><p>' . esc_html( sanitize_text_field( wp_unslash( $_GET['imp_error'] ) ) ) . '</p></div>';
+		}
+
+		if ( isset( $_GET['imported'] ) ) {
+			$created = isset( $_GET['imp_created'] ) ? absint( $_GET['imp_created'] ) : 0;
+			$updated = isset( $_GET['imp_updated'] ) ? absint( $_GET['imp_updated'] ) : 0;
+			$skipped = isset( $_GET['imp_skipped'] ) ? absint( $_GET['imp_skipped'] ) : 0;
+			echo '<div class="notice notice-success is-dismissible"><p>' . esc_html(
+				sprintf(
+					/* translators: 1: created, 2: updated, 3: skipped */
+					__( 'Import complete: %1$d created, %2$d updated, %3$d skipped.', 'buildingcare-lite' ),
+					$created,
+					$updated,
+					$skipped
+				)
+			) . '</p></div>';
+		}
+
 		if ( ! isset( $_GET['bills_created'] ) && ! isset( $_GET['recurring_created'] ) ) {
 			return;
 		}
@@ -975,16 +1011,30 @@ class Admin_Pages {
 			return;
 		}
 
+		$selected_month = isset( $_GET['stats_month'] ) ? sanitize_text_field( wp_unslash( $_GET['stats_month'] ) ) : '';
+		if ( ! preg_match( '/^\d{4}-\d{2}$/', $selected_month ) ) {
+			$selected_month = bcl_current_billing_month();
+		}
+
 		$reports = new Reports();
-		$stats   = $reports->get_dashboard_stats();
-		$trend   = $reports->get_monthly_trend( 6 );
+		$stats   = $reports->get_dashboard_stats( $selected_month );
+		$trend   = $reports->get_monthly_trend( 6, $selected_month );
 		$trend_max = 0.0;
 		foreach ( $trend as $point ) {
 			$trend_max = max( $trend_max, (float) $point['income'], (float) $point['expenses'] );
 		}
 		?>
 		<div class="bcl-tab-body">
-			<p class="bcl-subtitle"><?php echo esc_html( sprintf( __( 'Overview for %s', 'buildingcare-lite' ), $stats['month'] ) ); ?></p>
+			<div class="bcl-overview-head">
+				<p class="bcl-subtitle"><?php echo esc_html( sprintf( __( 'Overview for %s', 'buildingcare-lite' ), bcl_format_billing_month( (string) $stats['month'] ) ) ); ?></p>
+				<form method="get" class="bcl-list-form bcl-overview-filter">
+					<input type="hidden" name="page" value="bcl-dashboard">
+					<input type="hidden" name="tab" value="overview">
+					<label class="bcl-field-label" for="bcl-stats-month"><?php esc_html_e( 'Month', 'buildingcare-lite' ); ?></label>
+					<input type="month" name="stats_month" id="bcl-stats-month" value="<?php echo esc_attr( $selected_month ); ?>">
+					<button type="submit" class="button"><?php esc_html_e( 'Apply', 'buildingcare-lite' ); ?></button>
+				</form>
+			</div>
 
 			<div class="bcl-portal-note">
 				<span class="dashicons dashicons-smartphone"></span>
@@ -1164,6 +1214,43 @@ class Admin_Pages {
 				</div>
 			<?php endif; ?>
 
+			<?php if ( $can_generate_bills || bcl_current_user_can( 'bc_manage_payments' ) ) : ?>
+				<div class="bcl-panel bcl-extra-charge-panel">
+					<h2 class="bcl-panel-title"><?php esc_html_e( 'Add One-off Charge', 'buildingcare-lite' ); ?></h2>
+					<p class="bcl-panel-desc"><?php esc_html_e( 'Add an extra charge (e.g. repair, fine, parking) to a flat. It is added to that flat’s bill for the selected month and included in the total payable.', 'buildingcare-lite' ); ?></p>
+					<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="bcl-extra-charge-form">
+						<?php wp_nonce_field( 'bcl_add_extra_charge' ); ?>
+						<input type="hidden" name="action" value="bcl_add_extra_charge">
+						<div class="bcl-filter-bar">
+							<div class="bcl-filter-bar__field">
+								<label class="bcl-field-label" for="bcl-charge-flat"><?php esc_html_e( 'Flat', 'buildingcare-lite' ); ?></label>
+								<select name="flat_id" id="bcl-charge-flat" required>
+									<option value=""><?php esc_html_e( '— Select flat —', 'buildingcare-lite' ); ?></option>
+									<?php foreach ( bcl_get_flats_options() as $fid => $flabel ) : ?>
+										<option value="<?php echo esc_attr( (string) $fid ); ?>"><?php echo esc_html( $flabel ); ?></option>
+									<?php endforeach; ?>
+								</select>
+							</div>
+							<div class="bcl-filter-bar__field">
+								<label class="bcl-field-label" for="bcl-charge-month"><?php esc_html_e( 'Month', 'buildingcare-lite' ); ?></label>
+								<input type="month" name="billing_month" id="bcl-charge-month" value="<?php echo esc_attr( $month ); ?>">
+							</div>
+							<div class="bcl-filter-bar__field">
+								<label class="bcl-field-label" for="bcl-charge-label"><?php esc_html_e( 'Charge label', 'buildingcare-lite' ); ?></label>
+								<input type="text" name="charge_label" id="bcl-charge-label" placeholder="<?php esc_attr_e( 'e.g. Door repair', 'buildingcare-lite' ); ?>" required>
+							</div>
+							<div class="bcl-filter-bar__field">
+								<label class="bcl-field-label" for="bcl-charge-amount"><?php esc_html_e( 'Amount', 'buildingcare-lite' ); ?></label>
+								<input type="number" name="charge_amount" id="bcl-charge-amount" step="0.01" min="0" required>
+							</div>
+							<div class="bcl-filter-bar__actions">
+								<?php submit_button( __( 'Add Charge', 'buildingcare-lite' ), 'secondary', 'submit_extra_charge', false ); ?>
+							</div>
+						</div>
+					</form>
+				</div>
+			<?php endif; ?>
+
 			<?php if ( bcl_current_user_can( 'bc_manage_payments' ) ) : ?>
 				<div class="bcl-panel bcl-payments-section">
 					<div class="bcl-panel-header">
@@ -1280,6 +1367,7 @@ class Admin_Pages {
 			'collection'        => __( 'Monthly Collection', 'buildingcare-lite' ),
 			'flat_wise'         => __( 'Flat-wise Report', 'buildingcare-lite' ),
 			'resident_wise'     => __( 'Resident-wise Report', 'buildingcare-lite' ),
+			'building_wise'     => __( 'Building-wise Report', 'buildingcare-lite' ),
 			'due'               => __( 'Due Report', 'buildingcare-lite' ),
 			'expense'           => __( 'Monthly Expense', 'buildingcare-lite' ),
 			'income_vs_expense' => __( 'Income vs Expense', 'buildingcare-lite' ),
@@ -1478,6 +1566,121 @@ class Admin_Pages {
 				</tbody>
 			</table>
 		</div>
+		<?php
+	}
+
+	/**
+	 * Render the CSV import page.
+	 */
+	public function render_import_page(): void {
+		if ( ! bcl_current_user_can( 'bc_manage_flats' ) && ! bcl_current_user_can( 'bc_manage_residents' ) ) {
+			echo '<p>' . esc_html__( 'Permission denied.', 'buildingcare-lite' ) . '</p>';
+			return;
+		}
+		?>
+		<div class="bcl-tab-body bcl-page-import">
+			<p class="bcl-subtitle"><?php esc_html_e( 'Bulk-create flats and residents from a CSV file. Existing records (matched by flat number or email) are updated.', 'buildingcare-lite' ); ?></p>
+
+			<?php if ( bcl_current_user_can( 'bc_manage_flats' ) ) : ?>
+				<div class="bcl-panel">
+					<h2 class="bcl-panel-title"><?php esc_html_e( 'Import Flats', 'buildingcare-lite' ); ?></h2>
+					<p class="bcl-panel-desc">
+						<?php esc_html_e( 'CSV columns:', 'buildingcare-lite' ); ?>
+						<code>building, flat_number, floor_number, flat_size, monthly_service_charge, occupancy_status</code>
+					</p>
+					<p class="bcl-panel-desc bcl-import-example">
+						<?php esc_html_e( 'Example row:', 'buildingcare-lite' ); ?>
+						<code>Sunrise Tower, A-101, 1, 1200, 5000, occupied</code>
+					</p>
+					<p class="bcl-panel-desc">
+						<a class="button button-secondary bcl-download-sample" href="<?php echo esc_url( Import::sample_url( 'flats' ) ); ?>">
+							<span class="dashicons dashicons-download" aria-hidden="true"></span>
+							<?php esc_html_e( 'Download sample CSV', 'buildingcare-lite' ); ?>
+						</a>
+					</p>
+					<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" enctype="multipart/form-data" class="bcl-import-form">
+						<?php wp_nonce_field( 'bcl_import_csv' ); ?>
+						<input type="hidden" name="action" value="bcl_import_csv">
+						<input type="hidden" name="import_type" value="flats">
+						<input type="file" name="bcl_csv" accept=".csv,text/csv" required>
+						<?php submit_button( __( 'Import Flats', 'buildingcare-lite' ), 'primary', 'submit', false ); ?>
+					</form>
+				</div>
+			<?php endif; ?>
+
+			<?php if ( bcl_current_user_can( 'bc_manage_residents' ) ) : ?>
+				<div class="bcl-panel">
+					<h2 class="bcl-panel-title"><?php esc_html_e( 'Import Residents', 'buildingcare-lite' ); ?></h2>
+					<p class="bcl-panel-desc">
+						<?php esc_html_e( 'CSV columns:', 'buildingcare-lite' ); ?>
+						<code>name, mobile, email, flat_number, move_in_date</code>
+						<br>
+						<?php esc_html_e( 'Residents with a valid email get a tenant portal login automatically.', 'buildingcare-lite' ); ?>
+					</p>
+					<p class="bcl-panel-desc bcl-import-example">
+						<?php esc_html_e( 'Example row:', 'buildingcare-lite' ); ?>
+						<code>John Doe, 01700000000, john@example.com, A-101, 2026-01-15</code>
+					</p>
+					<p class="bcl-panel-desc">
+						<a class="button button-secondary bcl-download-sample" href="<?php echo esc_url( Import::sample_url( 'residents' ) ); ?>">
+							<span class="dashicons dashicons-download" aria-hidden="true"></span>
+							<?php esc_html_e( 'Download sample CSV', 'buildingcare-lite' ); ?>
+						</a>
+					</p>
+					<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" enctype="multipart/form-data" class="bcl-import-form">
+						<?php wp_nonce_field( 'bcl_import_csv' ); ?>
+						<input type="hidden" name="action" value="bcl_import_csv">
+						<input type="hidden" name="import_type" value="residents">
+						<input type="file" name="bcl_csv" accept=".csv,text/csv" required>
+						<?php submit_button( __( 'Import Residents', 'buildingcare-lite' ), 'primary', 'submit', false ); ?>
+					</form>
+				</div>
+			<?php endif; ?>
+		</div>
+		<?php
+	}
+
+	/**
+	 * Register the at-a-glance WP dashboard widget.
+	 */
+	public function register_dashboard_widget(): void {
+		if ( ! bcl_current_user_can( 'bc_view_reports' ) ) {
+			return;
+		}
+
+		wp_add_dashboard_widget(
+			'bcl_overview_widget',
+			__( 'BuildingCare — This Month', 'buildingcare-lite' ),
+			array( $this, 'render_dashboard_widget' )
+		);
+	}
+
+	/**
+	 * Render the WP dashboard widget body.
+	 */
+	public function render_dashboard_widget(): void {
+		$stats = ( new Reports() )->get_dashboard_stats();
+		$rows  = array(
+			__( 'Income', 'buildingcare-lite' )           => bcl_format_amount( (float) $stats['income'] ),
+			__( 'Expenses', 'buildingcare-lite' )         => bcl_format_amount( (float) $stats['expenses'] ),
+			__( 'Current Balance', 'buildingcare-lite' )  => bcl_format_amount( (float) $stats['closing_balance'] ),
+			__( 'Outstanding Dues', 'buildingcare-lite' ) => bcl_format_amount( (float) $stats['outstanding_dues'] ),
+			__( 'Unpaid Flats', 'buildingcare-lite' )     => (string) (int) $stats['unpaid_flats'],
+		);
+		?>
+		<ul class="bcl-widget-list" style="margin:0;">
+			<?php foreach ( $rows as $label => $value ) : ?>
+				<li style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #f0f0f1;">
+					<span><?php echo esc_html( $label ); ?></span>
+					<strong><?php echo esc_html( $value ); ?></strong>
+				</li>
+			<?php endforeach; ?>
+		</ul>
+		<p>
+			<a href="<?php echo esc_url( admin_url( 'admin.php?page=bcl-dashboard' ) ); ?>" class="button button-secondary">
+				<?php esc_html_e( 'Open BuildingCare', 'buildingcare-lite' ); ?>
+			</a>
+		</p>
 		<?php
 	}
 }

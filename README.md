@@ -3,7 +3,7 @@
 Lightweight WordPress apartment management for building owners and managers. Track flats, residents, monthly service charges, expenses, payments, and balance sheets — without custom database tables or external frameworks.
 
 **Author:** [MagePeople Team](https://mage-people.com/)  
-**Version:** 1.4.0  
+**Version:** 1.5.0  
 **License:** GPL v2 or later
 
 ---
@@ -16,8 +16,12 @@ Lightweight WordPress apartment management for building owners and managers. Tra
 - **Payment collection** — Record full or partial payments from the Bills & Payments screen
 - **Expense tracking** — One-time expenses with categories and attachments
 - **Recurring expenses** — Monthly vouchers auto-generated from recurring expense templates
-- **Dashboard** — Income, expenses, closing balance, and outstanding dues at a glance
-- **Reports** — Collection, flat-wise, resident-wise, due, expense, and income vs expense reports with CSV export
+- **One-off charges** — Add ad-hoc charges (repairs, fines, parking) to a flat's monthly bill
+- **Maintenance requests** — Tenants raise complaints/requests from the portal; admins track status and reply
+- **Notices board** — Publish announcements that residents see in their portal
+- **CSV import** — Bulk-create flats and residents (with automatic tenant logins)
+- **Dashboard** — Income, expenses, closing balance, and outstanding dues at a glance (with month selector + WP dashboard widget)
+- **Reports** — Collection, flat-wise, resident-wise, building-wise, due, expense, and income vs expense reports with CSV export
 - **User roles** — Building Admin and Manager with scoped capabilities
 - **REST API** — Endpoints for dashboard, bills, flats, residents, expenses, reports, and audit log
 - **Audit log** — Tracks bill generation, payments, exports, and cron activity
@@ -118,11 +122,14 @@ BuildingCare adds a **single** admin menu item — **BuildingCare** — that ope
 | Buildings            | Create/edit/delete buildings in-place    |
 | Flats                | Create/edit/delete flats in-place        |
 | Residents            | Create/edit/delete residents in-place    |
-| Bills & Payments     | Generate bills and collect payments      |
+| Bills & Payments     | Generate bills, collect payments, add one-off charges |
 | Expenses             | One-time expense entries                 |
 | Recurring Expenses   | Monthly expense templates                |
+| Maintenance          | Tenant maintenance requests & status workflow |
+| Notices              | Announcements shown in the tenant portal |
 | Reports              | Analytics and CSV export                 |
 | Settings             | Balance, currency, billing rules, emails |
+| Import               | Bulk CSV import of flats and residents   |
 | Audit Log            | Activity history                         |
 
 Tabs are shown only for the capabilities the current user holds.
@@ -143,17 +150,20 @@ Full access to buildings, flats, residents, bills, expenses, reports, and settin
 | `bc_generate_bills`   | Generate bills, view All Bills |
 | `bc_manage_payments`  | Record payments |
 | `bc_manage_expenses`  | Expenses & recurring expenses |
+| `bc_manage_tickets`   | Maintenance requests |
+| `bc_manage_notices`   | Notices / announcements |
 | `bc_view_reports`     | Dashboard & reports |
-| `bc_manage_settings`  | Settings & audit log |
+| `bc_manage_settings`  | Settings, import & audit log |
 
 ### Manager
 
-Operational access for day-to-day collections and expenses.
+Operational access for day-to-day collections, expenses, and maintenance.
 
 | Capability            | Access |
 |-----------------------|--------|
 | `bc_manage_payments`  | Bills & Payments |
 | `bc_manage_expenses`  | Expenses & recurring expenses |
+| `bc_manage_tickets`   | Maintenance requests |
 | `bc_view_reports`     | Dashboard & reports |
 
 WordPress **Administrators** receive all BuildingCare capabilities automatically.
@@ -175,6 +185,8 @@ WordPress **Administrators** receive all BuildingCare capabilities automatically
 | `bc_expense`           | One-time expense voucher       |
 | `bc_recurring_expense` | Recurring monthly expense      |
 | `bc_payment`           | Immutable payment ledger entry |
+| `bc_ticket`            | Maintenance / complaint request |
+| `bc_notice`            | Announcement / notice          |
 
 ### Taxonomy
 
@@ -191,8 +203,10 @@ Default categories are seeded on activation: Lift Maintenance, Staff Salary, Cle
 | Building  | `bc_address`, `bc_total_floors`, `bc_status` |
 | Flat      | `bc_building_id`, `bc_flat_number`, `bc_monthly_service_charge`, `bc_occupancy_status` |
 | Resident  | `bc_mobile`, `bc_email`, `bc_assigned_flat_id`, `bc_move_in_date` |
-| Bill      | `bc_billing_month`, `bc_service_charge_amount`, `bc_previous_due_amount`, `bc_total_payable_amount`, `bc_payment_status` |
+| Bill      | `bc_billing_month`, `bc_service_charge_amount`, `bc_previous_due_amount`, `bc_total_payable_amount`, `bc_payment_status`, `bc_extra_charges`, `bc_extra_charges_total` |
 | Expense   | `bc_amount`, `bc_expense_date`, `bc_is_paid`, `bc_attachment_id` |
+| Ticket    | `bc_flat_id`, `bc_resident_id`, `bc_ticket_category`, `bc_ticket_priority`, `bc_ticket_status`, `bc_description`, `bc_admin_response` |
+| Notice    | `bc_notice_body`, `bc_pinned`, `bc_expires_on` |
 
 ---
 
@@ -209,6 +223,68 @@ When reminders are enabled, a second daily cron event (`bcl_daily_reminders`) em
 
 ---
 
+## Maintenance Requests
+
+Tenants raise maintenance/complaint requests from the **Requests** tab in the tenant portal (subject, category, priority, description). Each request is stored as a `bc_ticket` and is scoped to the submitting resident.
+
+Admins and managers manage requests under **BuildingCare → Maintenance**:
+
+- Filter by status and search the list.
+- Move a request through its lifecycle: **Open → In Progress → Resolved → Closed**.
+- Add a **response to the resident**.
+
+Emails:
+
+- The site administrator is notified on every new request.
+- The resident is emailed when the status or response changes (only when **Email Notifications** are enabled in Settings).
+
+Capability: `bc_manage_tickets` (Building Admin and Manager).
+
+---
+
+## Notices / Announcements
+
+Publish building-wide announcements under **BuildingCare → Notices**. Each notice (`bc_notice`) supports:
+
+- A title and message body.
+- **Pin to top** so important notices appear first.
+- An optional **expiry date** — expired notices automatically stop showing.
+
+Active notices appear in the **Notices** tab of the tenant portal, pinned first.
+
+Capability: `bc_manage_notices` (Building Admin).
+
+---
+
+## One-off Charges
+
+Add ad-hoc charges (e.g. repair, fine, parking) to a flat from **Bills & Payments → Add One-off Charge**:
+
+- Pick a flat, billing month, label, and amount.
+- If a bill already exists for that flat/month, the charge is appended and the total/remaining due are recalculated against any payments already made.
+- If no bill exists yet, one is generated with the charge included.
+
+Charges are stored on the bill (`bc_extra_charges`), shown on the bill edit screen and on the tenant's printable receipt, and folded into **Total Payable**.
+
+Capability: `bc_generate_bills` or `bc_manage_payments`.
+
+---
+
+## CSV Import
+
+Bulk-create or update flats and residents from **BuildingCare → Import**. Each importer shows the expected columns, an example row, and a **Download sample CSV** button (a ready-to-edit template with headers and example rows).
+
+**Flats** — columns: `building, flat_number, floor_number, flat_size, monthly_service_charge, occupancy_status`
+- `building` may be a building title or ID. Flats are matched/updated by `flat_number` (within the building when given).
+
+**Residents** — columns: `name, mobile, email, flat_number, move_in_date`
+- Residents are matched/updated by `email`. `flat_number` links the resident to an existing flat (and marks it occupied).
+- Residents with a valid email automatically get a tenant portal login.
+
+Files are validated for type (`.csv`) and size (max 2 MB). Each import reports created / updated / skipped counts. Capability: `bc_manage_flats` (flats) or `bc_manage_residents` (residents).
+
+---
+
 ## Reports
 
 | Report type         | Description |
@@ -216,6 +292,7 @@ When reminders are enabled, a second daily cron event (`bcl_daily_reminders`) em
 | `collection`        | Monthly collection summary |
 | `flat_wise`         | Per-flat billing and payment breakdown |
 | `resident_wise`     | Per-resident payment history |
+| `building_wise`     | Per-building collected vs. due totals |
 | `due`               | Outstanding dues |
 | `expense`           | Monthly expense totals |
 | `income_vs_expense` | Income and expense comparison |
@@ -274,6 +351,10 @@ buildingcare-lite/
 │   ├── class-cron.php         # Monthly automation
 │   ├── class-reports.php      # Report calculations
 │   ├── class-export.php       # CSV export
+│   ├── class-import.php       # CSV import (flats & residents)
+│   ├── class-tenant-portal.php # Front-end tenant portal
+│   ├── class-tenant-accounts.php # Tenant user provisioning
+│   ├── class-pwa.php          # PWA manifest & service worker
 │   └── class-rest-api.php     # REST endpoints
 └── languages/                 # Translation files
 ```
@@ -318,6 +399,23 @@ For questions, feature requests, or commercial support, visit [MagePeople](https
 ---
 
 ## Changelog
+
+### 1.5.0
+
+**New features**
+
+- **Maintenance requests** — A new `bc_ticket` type. Tenants submit complaints/requests (subject, category, priority, description) from a **Requests** tab in the portal; admins and managers manage them under **BuildingCare → Maintenance** with a status workflow (Open → In Progress → Resolved → Closed) and a reply field. The site admin is emailed on new requests, and tenants are emailed on status/response changes (when email notifications are on).
+- **Notices / announcements** — A new `bc_notice` type managed under **BuildingCare → Notices** (optional pin-to-top and expiry date). Active notices appear in a **Notices** tab in the tenant portal, pinned first.
+- **One-off charges** — Add ad-hoc charges (e.g. repair, fine, parking) to a flat's bill for a month from **Bills & Payments**. Charges are folded into Total Payable, recalculated against any payments already made, shown on the bill screen and the tenant receipt.
+- **CSV import** — A new **Import** tab bulk-creates/updates flats and residents from a CSV (matched by flat number / email). Imported residents with an email automatically get a tenant portal login.
+- **Building-wise report** — New report aggregating collected vs. due per building, with CSV export.
+- **Dashboard month selector** — View the overview, balance sheet, and chart for any month, not just the current one.
+- **WP dashboard widget** — An at-a-glance summary (income, expenses, balance, outstanding dues, unpaid flats) on the main WordPress dashboard.
+
+**Fixes (carried in this release)**
+
+- Fixed duplicate bill generation caused by a raw-SQL `post_status = 'any'` comparison that matched no rows.
+- Restored the fast SQL aggregations, meta-cache priming, and option-cache invalidation that were silently disabled by namespace-unaware `function_exists()` guards.
 
 ### 1.4.0
 

@@ -51,6 +51,7 @@ final class Loader {
 		new Expenses();
 		new Reports();
 		new Export();
+		new Import();
 		new Notifications();
 		new Rest_Api();
 		new PWA();
@@ -97,6 +98,7 @@ final class Loader {
 			'class-expenses.php',
 			'class-reports.php',
 			'class-export.php',
+			'class-import.php',
 			'class-notifications.php',
 			'class-rest-api.php',
 			'class-pwa.php',

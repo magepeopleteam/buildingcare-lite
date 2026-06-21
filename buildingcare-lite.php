@@ -3,7 +3,7 @@
  * Plugin Name:       BuildingCare Lite
  * Plugin URI:        https://mage-people.com/
  * Description:       Lightweight apartment management for building owners — flats, residents, service charges, expenses, and balance sheets.
- * Version:           1.4.0
+ * Version:           1.5.0
  * Requires at least: 6.0
  * Requires PHP:      8.2
  * Author:            MagePeople Team
@@ -24,7 +24,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'BCL_VERSION', '1.4.0' );
+define( 'BCL_VERSION', '1.5.0' );
 define( 'BCL_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'BCL_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'BCL_PLUGIN_BASENAME', plugin_basename( __FILE__ ) );

@@ -58,6 +58,94 @@ class Notifications {
 	}
 
 	/**
+	 * Resolve a resident's email address.
+	 */
+	private static function resident_email( int $resident_id ): string {
+		if ( $resident_id <= 0 ) {
+			return '';
+		}
+
+		$email = bcl_get_meta_string( $resident_id, 'bc_email' );
+
+		return is_email( $email ) ? $email : '';
+	}
+
+	/**
+	 * Notify the site admin that a new maintenance request was submitted.
+	 *
+	 * Sent regardless of the resident-email opt-in (it goes to the operator).
+	 */
+	public static function ticket_created( int $ticket_id ): void {
+		$admin_email = sanitize_email( (string) get_option( 'admin_email' ) );
+		if ( ! is_email( $admin_email ) ) {
+			return;
+		}
+
+		$categories = bcl_ticket_categories();
+		$priorities = bcl_ticket_priorities();
+		$flat_id    = (int) bcl_get_meta_float( $ticket_id, 'bc_flat_id' );
+		$flat       = $flat_id ? bcl_get_flat_number( $flat_id ) : '';
+
+		$subject = sprintf(
+			/* translators: %s: site name */
+			__( '[%s] New maintenance request', 'buildingcare-lite' ),
+			wp_specialchars_decode( (string) get_option( 'blogname' ), ENT_QUOTES )
+		);
+
+		$lines = array(
+			__( 'A new maintenance request has been submitted.', 'buildingcare-lite' ),
+			'',
+			sprintf( /* translators: %s: subject */ __( 'Subject: %s', 'buildingcare-lite' ), get_the_title( $ticket_id ) ),
+			sprintf( /* translators: %s: flat */ __( 'Flat: %s', 'buildingcare-lite' ), $flat ?: '—' ),
+			sprintf( /* translators: %s: category */ __( 'Category: %s', 'buildingcare-lite' ), $categories[ bcl_get_meta_string( $ticket_id, 'bc_ticket_category' ) ] ?? '—' ),
+			sprintf( /* translators: %s: priority */ __( 'Priority: %s', 'buildingcare-lite' ), $priorities[ bcl_get_meta_string( $ticket_id, 'bc_ticket_priority' ) ] ?? '—' ),
+			'',
+			bcl_get_meta_string( $ticket_id, 'bc_description' ),
+		);
+
+		wp_mail( $admin_email, $subject, implode( "\n", $lines ) );
+	}
+
+	/**
+	 * Notify the resident that their maintenance request status/response changed.
+	 */
+	public static function ticket_updated( int $ticket_id ): void {
+		if ( ! self::emails_enabled() ) {
+			return;
+		}
+
+		$resident_id = (int) bcl_get_meta_float( $ticket_id, 'bc_resident_id' );
+		$email       = self::resident_email( $resident_id );
+		if ( '' === $email ) {
+			return;
+		}
+
+		$statuses = bcl_ticket_statuses();
+		$status   = bcl_get_meta_string( $ticket_id, 'bc_ticket_status' );
+		$response = bcl_get_meta_string( $ticket_id, 'bc_admin_response' );
+
+		$subject = sprintf(
+			/* translators: %s: site name */
+			__( '[%s] Update on your maintenance request', 'buildingcare-lite' ),
+			wp_specialchars_decode( (string) get_option( 'blogname' ), ENT_QUOTES )
+		);
+
+		$lines = array(
+			sprintf( /* translators: %s: subject */ __( 'Your request "%s" has been updated.', 'buildingcare-lite' ), get_the_title( $ticket_id ) ),
+			'',
+			sprintf( /* translators: %s: status */ __( 'Status: %s', 'buildingcare-lite' ), $statuses[ $status ] ?? $status ),
+		);
+
+		if ( '' !== $response ) {
+			$lines[] = '';
+			$lines[] = __( 'Message from management:', 'buildingcare-lite' );
+			$lines[] = $response;
+		}
+
+		wp_mail( $email, $subject, implode( "\n", $lines ) );
+	}
+
+	/**
 	 * Resolve a resident email for a bill.
 	 */
 	private static function resident_email_for_bill( int $bill_id ): string {

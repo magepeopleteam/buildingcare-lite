@@ -198,6 +198,8 @@ function bcl_get_post_types(): array {
 		'bc_expense',
 		'bc_recurring_expense',
 		'bc_payment',
+		'bc_ticket',
+		'bc_notice',
 	);
 }
 
@@ -214,6 +216,8 @@ function bcl_get_manage_cap_prefixes(): array {
 		'bc_generate_bills'    => array( 'bc_bill', 'bc_bills' ),
 		'bc_manage_payments'   => array( 'bc_bill', 'bc_bills' ),
 		'bc_manage_expenses'   => array( 'bc_expense', 'bc_expenses', 'bc_recurring_expense', 'bc_recurring_expenses' ),
+		'bc_manage_tickets'    => array( 'bc_ticket', 'bc_tickets' ),
+		'bc_manage_notices'    => array( 'bc_notice', 'bc_notices' ),
 	);
 }
 
@@ -242,6 +246,8 @@ function bcl_get_capabilities(): array {
 		'bc_generate_bills',
 		'bc_manage_payments',
 		'bc_manage_expenses',
+		'bc_manage_tickets',
+		'bc_manage_notices',
 		'bc_view_reports',
 		'bc_manage_settings',
 	);
@@ -851,4 +857,89 @@ function bcl_prime_post_metas( array $post_ids ): void {
 		return;
 	}
 	update_meta_cache( 'post', $post_ids );
+}
+
+/**
+ * Maintenance ticket status labels.
+ *
+ * @return array<string, string>
+ */
+function bcl_ticket_statuses(): array {
+	return array(
+		'open'        => __( 'Open', 'buildingcare-lite' ),
+		'in_progress' => __( 'In Progress', 'buildingcare-lite' ),
+		'resolved'    => __( 'Resolved', 'buildingcare-lite' ),
+		'closed'      => __( 'Closed', 'buildingcare-lite' ),
+	);
+}
+
+/**
+ * Maintenance ticket category labels.
+ *
+ * @return array<string, string>
+ */
+function bcl_ticket_categories(): array {
+	return array(
+		'plumbing'    => __( 'Plumbing', 'buildingcare-lite' ),
+		'electrical'  => __( 'Electrical', 'buildingcare-lite' ),
+		'lift'        => __( 'Lift / Elevator', 'buildingcare-lite' ),
+		'security'    => __( 'Security', 'buildingcare-lite' ),
+		'cleaning'    => __( 'Cleaning', 'buildingcare-lite' ),
+		'other'       => __( 'Other', 'buildingcare-lite' ),
+	);
+}
+
+/**
+ * Maintenance ticket priority labels.
+ *
+ * @return array<string, string>
+ */
+function bcl_ticket_priorities(): array {
+	return array(
+		'low'    => __( 'Low', 'buildingcare-lite' ),
+		'normal' => __( 'Normal', 'buildingcare-lite' ),
+		'high'   => __( 'High', 'buildingcare-lite' ),
+	);
+}
+
+/**
+ * Read a bill's ad-hoc (one-off) charge line items.
+ *
+ * @return array<int, array{label:string, amount:float}>
+ */
+function bcl_get_bill_extra_charges( int $bill_id ): array {
+	$raw = get_post_meta( $bill_id, 'bc_extra_charges', true );
+	if ( ! is_array( $raw ) ) {
+		return array();
+	}
+
+	$items = array();
+	foreach ( $raw as $item ) {
+		if ( ! is_array( $item ) ) {
+			continue;
+		}
+		$label  = sanitize_text_field( (string) ( $item['label'] ?? '' ) );
+		$amount = round( (float) ( $item['amount'] ?? 0 ), 2 );
+		if ( '' === $label || $amount <= 0 ) {
+			continue;
+		}
+		$items[] = array(
+			'label'  => $label,
+			'amount' => $amount,
+		);
+	}
+
+	return $items;
+}
+
+/**
+ * Sum of a bill's ad-hoc charge line items.
+ */
+function bcl_get_bill_extra_total( int $bill_id ): float {
+	$total = 0.0;
+	foreach ( bcl_get_bill_extra_charges( $bill_id ) as $item ) {
+		$total += $item['amount'];
+	}
+
+	return round( $total, 2 );
 }

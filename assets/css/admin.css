@@ -2315,3 +2315,52 @@ body.bcl-admin .bcl-page-settings .bcl-settings-actions .submit {
 		text-align: center;
 	}
 }
+
+/* -------------------------------------------------------------------------
+ * v1.5.0 — Maintenance tickets, one-off charges, dashboard month filter.
+ * ---------------------------------------------------------------------- */
+.bcl-app .bcl-overview-head {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 12px;
+	align-items: flex-end;
+	justify-content: space-between;
+}
+.bcl-app .bcl-overview-filter {
+	display: flex;
+	gap: 8px;
+	align-items: flex-end;
+}
+.bcl-app .bcl-overview-filter input[type="month"] {
+	height: 32px;
+}
+
+/* Ticket status pills in the dashboard list (override base .bcl-status colors). */
+.bcl-app .bcl-status.bcl-ticket-status-open { background: #fdecec; color: #b32d2e; }
+.bcl-app .bcl-status.bcl-ticket-status-in_progress { background: #fff4e5; color: #bf6a02; }
+.bcl-app .bcl-status.bcl-ticket-status-resolved { background: #e6f4ea; color: #1a7f37; }
+.bcl-app .bcl-status.bcl-ticket-status-closed { background: #eef0f2; color: #646970; }
+
+/* One-off charge + import forms reuse existing panel/filter-bar styling. */
+.bcl-app .bcl-extra-charge-panel .bcl-filter-bar { align-items: flex-end; }
+.bcl-app .bcl-import-form { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+.bcl-app .bcl-import-form input[type="file"] { max-width: 100%; }
+.bcl-app .bcl-import-example code { white-space: normal; word-break: break-word; }
+
+/* Icon buttons: keep the dashicon centered with the label (download sample, install, add-new). */
+.bcl-app .bcl-download-sample {
+	display: inline-flex !important;
+	align-items: center;
+	gap: 4px;
+}
+.bcl-app .bcl-download-sample .dashicons,
+.bcl-app .bcl-add-new .dashicons,
+.bcl-install-btn .dashicons {
+	font-size: 16px;
+	width: 16px;
+	height: 16px;
+	line-height: 1;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+}

@@ -276,13 +276,21 @@ class Reports {
 	 *
 	 * @return array<int, array{month:string, label:string, income:float, expenses:float}>
 	 */
-	public function get_monthly_trend( int $months = 6 ): array {
+	public function get_monthly_trend( int $months = 6, string $anchor_month = '' ): array {
 		$months = max( 1, min( 24, $months ) );
 		$series = array();
 		$expenses_obj = new Expenses();
 
+		// Anchor the series to a specific month (e.g. the dashboard month selector).
+		$anchor_ts = ( $anchor_month && preg_match( '/^\d{4}-\d{2}$/', $anchor_month ) )
+			? strtotime( $anchor_month . '-01' )
+			: strtotime( gmdate( 'Y-m-01' ) );
+		if ( ! $anchor_ts ) {
+			$anchor_ts = strtotime( gmdate( 'Y-m-01' ) );
+		}
+
 		for ( $i = $months - 1; $i >= 0; $i-- ) {
-			$month = gmdate( 'Y-m', strtotime( "-{$i} months" ) );
+			$month = gmdate( 'Y-m', strtotime( "-{$i} months", $anchor_ts ) );
 			$range = $this->month_date_range( $month );
 			$series[] = array(
 				'month'    => $month,
@@ -308,6 +316,8 @@ class Reports {
 				return $this->flat_wise_report( $start_date, $end_date );
 			case 'resident_wise':
 				return $this->resident_wise_report( $start_date, $end_date );
+			case 'building_wise':
+				return $this->building_wise_report( $start_date, $end_date );
 			case 'due':
 				return $this->due_report();
 			case 'expense':
@@ -431,6 +441,43 @@ class Reports {
 				'flat'      => get_the_title( (int) bcl_get_meta_float( $resident_id, 'bc_assigned_flat_id' ) ),
 				'collected' => $totals[ $resident_id ]['collected'] ?? 0.0,
 				'due'       => $totals[ $resident_id ]['due'] ?? 0.0,
+			);
+		}
+
+		return $rows;
+	}
+
+	/**
+	 * Building-wise collection / dues report.
+	 */
+	private function building_wise_report( string $start_date, string $end_date ): array {
+		$buildings = get_posts(
+			array(
+				'post_type'      => 'bc_building',
+				'post_status'    => 'publish',
+				'posts_per_page' => -1,
+			)
+		);
+
+		if ( function_exists( __NAMESPACE__ . '\\bcl_prime_post_metas' ) ) {
+			bcl_prime_post_metas( wp_list_pluck( $buildings, 'ID' ) );
+		}
+
+		$totals = bcl_aggregate_bill_sums_by(
+			'bc_building_id',
+			bcl_month_from_date( $start_date ),
+			bcl_month_from_date( $end_date )
+		);
+
+		$rows = array();
+		foreach ( $buildings as $building ) {
+			$building_id = (int) $building->ID;
+
+			$rows[] = array(
+				'building'  => $building->post_title,
+				'address'   => bcl_get_meta_string( $building_id, 'bc_address' ),
+				'collected' => $totals[ $building_id ]['collected'] ?? 0.0,
+				'due'       => $totals[ $building_id ]['due'] ?? 0.0,
 			);
 		}
 

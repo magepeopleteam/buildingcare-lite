@@ -71,6 +71,8 @@ class Post_Types {
 		$this->register_bill();
 		$this->register_expense();
 		$this->register_recurring_expense();
+		$this->register_ticket();
+		$this->register_notice();
 	}
 
 	/**
@@ -460,6 +462,60 @@ class Post_Types {
 				'supports'            => array( 'title' ),
 				'has_archive'         => false,
 				'rewrite'             => false,
+			)
+		);
+	}
+
+	/**
+	 * Register bc_ticket (maintenance / complaint requests).
+	 *
+	 * Managed through the dashboard (and tenant portal) — no native UI screen.
+	 */
+	private function register_ticket(): void {
+		register_post_type(
+			'bc_ticket',
+			array(
+				'labels'          => array(
+					'name'          => __( 'Maintenance Requests', 'buildingcare-lite' ),
+					'singular_name' => __( 'Maintenance Request', 'buildingcare-lite' ),
+				),
+				'public'          => false,
+				'show_ui'         => false,
+				'show_in_menu'    => false,
+				'show_in_rest'    => false,
+				'capability_type' => array( 'bc_ticket', 'bc_tickets' ),
+				'map_meta_cap'    => true,
+				'capabilities'    => $this->internal_caps( 'ticket', 'tickets' ),
+				'supports'        => array( 'title', 'author' ),
+				'has_archive'     => false,
+				'rewrite'         => false,
+			)
+		);
+	}
+
+	/**
+	 * Register bc_notice (announcements board).
+	 *
+	 * Managed through the dashboard — no native UI screen.
+	 */
+	private function register_notice(): void {
+		register_post_type(
+			'bc_notice',
+			array(
+				'labels'          => array(
+					'name'          => __( 'Notices', 'buildingcare-lite' ),
+					'singular_name' => __( 'Notice', 'buildingcare-lite' ),
+				),
+				'public'          => false,
+				'show_ui'         => false,
+				'show_in_menu'    => false,
+				'show_in_rest'    => false,
+				'capability_type' => array( 'bc_notice', 'bc_notices' ),
+				'map_meta_cap'    => true,
+				'capabilities'    => $this->internal_caps( 'notice', 'notices' ),
+				'supports'        => array( 'title' ),
+				'has_archive'     => false,
+				'rewrite'         => false,
 			)
 		);
 	}

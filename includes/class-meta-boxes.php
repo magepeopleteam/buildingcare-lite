@@ -162,6 +162,21 @@ class Meta_Boxes {
 			echo '<p><em>' . esc_html__( 'This bill was carried forward into a later bill.', 'buildingcare-lite' ) . '</em></p>';
 		}
 
+		$extra_charges = bcl_get_bill_extra_charges( $post->ID );
+		if ( ! empty( $extra_charges ) ) {
+			echo '<p><strong>' . esc_html__( 'One-off Charges', 'buildingcare-lite' ) . '</strong></p>';
+			echo '<ul class="bcl-payment-history">';
+			foreach ( $extra_charges as $charge ) {
+				printf(
+					'<li>%1$s — %2$s</li>',
+					esc_html( $charge['label'] ),
+					esc_html( bcl_format_amount( $charge['amount'] ) )
+				);
+			}
+			echo '</ul>';
+			echo '<p class="description">' . esc_html__( 'One-off charges are included in Total Payable. Edit them from Bills & Payments.', 'buildingcare-lite' ) . '</p>';
+		}
+
 		$history = class_exists( __NAMESPACE__ . '\\Payments' ) ? Payments::for_bill( $post->ID ) : array();
 		if ( ! empty( $history ) ) {
 			$methods = bcl_payment_methods();
@@ -248,6 +263,12 @@ class Meta_Boxes {
 			case 'bc_recurring_expense':
 				$this->save_recurring( $post_id );
 				break;
+			case 'bc_ticket':
+				$this->save_ticket( $post_id );
+				break;
+			case 'bc_notice':
+				$this->save_notice( $post_id );
+				break;
 		}
 	}
 
@@ -333,7 +354,9 @@ class Meta_Boxes {
 		$previous_due   = round( (float) ( $_POST['bc_previous_due_amount'] ?? 0 ), 2 );
 		$late_fee       = round( (float) ( $_POST['bc_late_fee_amount'] ?? 0 ), 2 );
 		$amount_paid    = round( (float) ( $_POST['bc_amount_paid'] ?? 0 ), 2 );
-		$total_payable  = round( $service_charge + $previous_due + $late_fee, 2 );
+		// Preserve any ad-hoc charges already attached to this bill in the total.
+		$extra_total    = bcl_get_bill_extra_total( $post_id );
+		$total_payable  = round( $service_charge + $previous_due + $late_fee + $extra_total, 2 );
 
 		$state          = bcl_compute_payment_state( $total_payable, $amount_paid );
 		$amount_paid    = $state['amount_paid'];
@@ -389,6 +412,56 @@ class Meta_Boxes {
 
 		update_post_meta( $post_id, 'bc_monthly_amount', round( (float) ( $_POST['bc_monthly_amount'] ?? 0 ), 2 ) );
 		update_post_meta( $post_id, 'bc_active_status', sanitize_key( $_POST['bc_active_status'] ?? 'yes' ) );
+	}
+
+	/**
+	 * Save maintenance ticket meta (dashboard form).
+	 *
+	 * Tenant-submitted tickets are created directly by the portal (no nonce here),
+	 * so this only runs for admin/manager edits via the dashboard.
+	 */
+	private function save_ticket( int $post_id ): void {
+		if ( ! isset( $_POST['bcl_ticket_nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['bcl_ticket_nonce'] ) ), 'bcl_save_ticket' ) ) {
+			return;
+		}
+		if ( ! bcl_current_user_can( 'bc_manage_tickets' ) ) {
+			return;
+		}
+
+		$statuses    = bcl_ticket_statuses();
+		$old_status  = bcl_get_meta_string( $post_id, 'bc_ticket_status' );
+		$new_status  = sanitize_key( $_POST['bc_ticket_status'] ?? 'open' );
+		$new_status  = isset( $statuses[ $new_status ] ) ? $new_status : 'open';
+		$category    = sanitize_key( $_POST['bc_ticket_category'] ?? 'other' );
+		$priority    = sanitize_key( $_POST['bc_ticket_priority'] ?? 'normal' );
+
+		update_post_meta( $post_id, 'bc_flat_id', absint( $_POST['bc_flat_id'] ?? 0 ) );
+		update_post_meta( $post_id, 'bc_resident_id', absint( $_POST['bc_resident_id'] ?? 0 ) );
+		update_post_meta( $post_id, 'bc_ticket_category', array_key_exists( $category, bcl_ticket_categories() ) ? $category : 'other' );
+		update_post_meta( $post_id, 'bc_ticket_priority', array_key_exists( $priority, bcl_ticket_priorities() ) ? $priority : 'normal' );
+		update_post_meta( $post_id, 'bc_ticket_status', $new_status );
+		update_post_meta( $post_id, 'bc_description', sanitize_textarea_field( wp_unslash( $_POST['bc_description'] ?? '' ) ) );
+		update_post_meta( $post_id, 'bc_admin_response', sanitize_textarea_field( wp_unslash( $_POST['bc_admin_response'] ?? '' ) ) );
+
+		if ( $old_status !== $new_status && class_exists( __NAMESPACE__ . '\\Notifications' ) ) {
+			Notifications::ticket_updated( $post_id );
+		}
+	}
+
+	/**
+	 * Save notice / announcement meta (dashboard form).
+	 */
+	private function save_notice( int $post_id ): void {
+		if ( ! isset( $_POST['bcl_notice_nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['bcl_notice_nonce'] ) ), 'bcl_save_notice' ) ) {
+			return;
+		}
+		if ( ! bcl_current_user_can( 'bc_manage_notices' ) ) {
+			return;
+		}
+
+		update_post_meta( $post_id, 'bc_notice_body', sanitize_textarea_field( wp_unslash( $_POST['bc_notice_body'] ?? '' ) ) );
+		update_post_meta( $post_id, 'bc_pinned', sanitize_key( $_POST['bc_pinned'] ?? 'no' ) === 'yes' ? 'yes' : 'no' );
+		update_post_meta( $post_id, 'bc_expires_on', sanitize_text_field( wp_unslash( $_POST['bc_expires_on'] ?? '' ) ) );
 	}
 
 	/**

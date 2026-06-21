@@ -129,6 +129,11 @@ class Tenant_Portal {
 			exit;
 		}
 
+		// New maintenance request submission.
+		if ( isset( $_POST['bcl_portal_ticket'] ) ) {
+			$this->handle_ticket_submission( $resident_id );
+		}
+
 		// Single receipt view.
 		if ( isset( $_GET['receipt'] ) ) {
 			$bill_id = absint( $_GET['receipt'] );
@@ -237,6 +242,122 @@ class Tenant_Portal {
 	}
 
 	/**
+	 * Get the resident's maintenance requests, newest first.
+	 *
+	 * @return \WP_Post[]
+	 */
+	private function get_tickets( int $resident_id ): array {
+		return get_posts(
+			array(
+				'post_type'      => 'bc_ticket',
+				'post_status'    => 'publish',
+				'posts_per_page' => 50,
+				'orderby'        => 'date',
+				'order'          => 'DESC',
+				'meta_query'     => array(
+					array(
+						'key'   => 'bc_resident_id',
+						'value' => $resident_id,
+					),
+				),
+			)
+		);
+	}
+
+	/**
+	 * Get active building notices (pinned first, newest first).
+	 *
+	 * @return \WP_Post[]
+	 */
+	private function get_notices(): array {
+		$today = current_time( 'Y-m-d' );
+
+		$notices = get_posts(
+			array(
+				'post_type'      => 'bc_notice',
+				'post_status'    => 'publish',
+				'posts_per_page' => 50,
+				'orderby'        => 'date',
+				'order'          => 'DESC',
+				'meta_query'     => array(
+					'relation' => 'OR',
+					array(
+						'key'     => 'bc_expires_on',
+						'compare' => 'NOT EXISTS',
+					),
+					array(
+						'key'     => 'bc_expires_on',
+						'value'   => '',
+						'compare' => '=',
+					),
+					array(
+						'key'     => 'bc_expires_on',
+						'value'   => $today,
+						'compare' => '>=',
+						'type'    => 'DATE',
+					),
+				),
+			)
+		);
+
+		// Stable sort: pinned notices first, preserving the date order otherwise.
+		usort(
+			$notices,
+			static function ( \WP_Post $a, \WP_Post $b ): int {
+				$pa = bcl_get_meta_string( (int) $a->ID, 'bc_pinned' ) === 'yes' ? 1 : 0;
+				$pb = bcl_get_meta_string( (int) $b->ID, 'bc_pinned' ) === 'yes' ? 1 : 0;
+				return $pb <=> $pa;
+			}
+		);
+
+		return $notices;
+	}
+
+	/**
+	 * Create a maintenance request from the portal, scoped to the resident.
+	 */
+	private function handle_ticket_submission( int $resident_id ): void {
+		check_admin_referer( 'bcl_portal_ticket' );
+
+		$subject     = sanitize_text_field( wp_unslash( $_POST['ticket_subject'] ?? '' ) );
+		$category    = sanitize_key( $_POST['ticket_category'] ?? 'other' );
+		$priority    = sanitize_key( $_POST['ticket_priority'] ?? 'normal' );
+		$description = sanitize_textarea_field( wp_unslash( $_POST['ticket_description'] ?? '' ) );
+
+		if ( '' === $subject ) {
+			wp_safe_redirect( add_query_arg( 'ticket_error', '1', self::url() ) );
+			exit;
+		}
+
+		$flat_id   = (int) bcl_get_meta_float( $resident_id, 'bc_assigned_flat_id' );
+		$ticket_id = wp_insert_post(
+			array(
+				'post_type'   => 'bc_ticket',
+				'post_status' => 'publish',
+				'post_title'  => $subject,
+			),
+			true
+		);
+
+		if ( ! is_wp_error( $ticket_id ) ) {
+			$ticket_id = (int) $ticket_id;
+			update_post_meta( $ticket_id, 'bc_resident_id', $resident_id );
+			update_post_meta( $ticket_id, 'bc_flat_id', $flat_id );
+			update_post_meta( $ticket_id, 'bc_ticket_category', array_key_exists( $category, bcl_ticket_categories() ) ? $category : 'other' );
+			update_post_meta( $ticket_id, 'bc_ticket_priority', array_key_exists( $priority, bcl_ticket_priorities() ) ? $priority : 'normal' );
+			update_post_meta( $ticket_id, 'bc_ticket_status', 'open' );
+			update_post_meta( $ticket_id, 'bc_description', $description );
+
+			if ( class_exists( __NAMESPACE__ . '\\Notifications' ) ) {
+				Notifications::ticket_created( $ticket_id );
+			}
+		}
+
+		wp_safe_redirect( add_query_arg( 'saved', 'ticket', self::url() ) );
+		exit;
+	}
+
+	/**
 	 * Summary figures for the overview.
 	 *
 	 * @param \WP_Post[] $bills Resident bills.
@@ -323,6 +444,9 @@ class Tenant_Portal {
 		});
 		if (window.location.search.indexOf('saved=profile') !== -1) {
 			bclActivateTab('bcl-p-profile');
+		}
+		if (window.location.search.indexOf('saved=ticket') !== -1 || window.location.search.indexOf('ticket_error=') !== -1) {
+			bclActivateTab('bcl-p-requests');
 		}
 	</script>
 </body>
@@ -418,6 +542,11 @@ class Tenant_Portal {
 		$summary   = $this->summarize( $bills );
 		$statuses  = bcl_payment_statuses();
 		$methods   = bcl_payment_methods();
+		$tickets            = $this->get_tickets( $resident_id );
+		$notices            = $this->get_notices();
+		$ticket_statuses    = bcl_ticket_statuses();
+		$ticket_categories  = bcl_ticket_categories();
+		$ticket_priorities  = bcl_ticket_priorities();
 
 		$this->head( __( 'Tenant Portal', 'buildingcare-lite' ) );
 		?>
@@ -448,6 +577,8 @@ class Tenant_Portal {
 				<button class="bcl-p-tab is-active" data-target="bcl-p-overview"><?php esc_html_e( 'Overview', 'buildingcare-lite' ); ?></button>
 				<button class="bcl-p-tab" data-target="bcl-p-bills"><?php esc_html_e( 'Bills', 'buildingcare-lite' ); ?></button>
 				<button class="bcl-p-tab" data-target="bcl-p-payments"><?php esc_html_e( 'Payments', 'buildingcare-lite' ); ?></button>
+				<button class="bcl-p-tab" data-target="bcl-p-notices"><?php esc_html_e( 'Notices', 'buildingcare-lite' ); ?></button>
+				<button class="bcl-p-tab" data-target="bcl-p-requests"><?php esc_html_e( 'Requests', 'buildingcare-lite' ); ?></button>
 				<button class="bcl-p-tab" data-target="bcl-p-profile"><?php esc_html_e( 'Profile', 'buildingcare-lite' ); ?></button>
 			</nav>
 
@@ -516,6 +647,78 @@ class Tenant_Portal {
 				<?php endif; ?>
 			</section>
 
+			<section id="bcl-p-notices" class="bcl-p-section">
+				<?php if ( empty( $notices ) ) : ?>
+					<p class="bcl-p-empty"><?php esc_html_e( 'No notices right now.', 'buildingcare-lite' ); ?></p>
+				<?php else : ?>
+					<?php foreach ( $notices as $notice ) : $nid = (int) $notice->ID; $pinned = bcl_get_meta_string( $nid, 'bc_pinned' ) === 'yes'; ?>
+						<div class="bcl-p-card bcl-p-notice<?php echo $pinned ? ' is-pinned' : ''; ?>">
+							<h2>
+								<?php if ( $pinned ) : ?><span class="bcl-p-pin" aria-hidden="true">📌</span> <?php endif; ?>
+								<?php echo esc_html( get_the_title( $nid ) ); ?>
+							</h2>
+							<p class="bcl-p-notice-body"><?php echo nl2br( esc_html( bcl_get_meta_string( $nid, 'bc_notice_body' ) ) ); ?></p>
+							<div class="bcl-p-sub bcl-p-muted"><?php echo esc_html( get_the_date( '', $nid ) ); ?></div>
+						</div>
+					<?php endforeach; ?>
+				<?php endif; ?>
+			</section>
+
+			<section id="bcl-p-requests" class="bcl-p-section">
+				<?php if ( isset( $_GET['saved'] ) && 'ticket' === sanitize_key( wp_unslash( $_GET['saved'] ) ) ) : ?>
+					<div class="bcl-p-saved"><?php esc_html_e( 'Your request has been submitted.', 'buildingcare-lite' ); ?></div>
+				<?php endif; ?>
+				<?php if ( isset( $_GET['ticket_error'] ) ) : ?>
+					<div class="bcl-p-error"><?php esc_html_e( 'Please enter a subject for your request.', 'buildingcare-lite' ); ?></div>
+				<?php endif; ?>
+
+				<div class="bcl-p-card">
+					<h2><?php esc_html_e( 'New Maintenance Request', 'buildingcare-lite' ); ?></h2>
+					<form method="post" action="<?php echo esc_url( self::url() ); ?>" class="bcl-p-form">
+						<?php wp_nonce_field( 'bcl_portal_ticket' ); ?>
+						<label><?php esc_html_e( 'Subject', 'buildingcare-lite' ); ?>
+							<input type="text" name="ticket_subject" required>
+						</label>
+						<label><?php esc_html_e( 'Category', 'buildingcare-lite' ); ?>
+							<select name="ticket_category">
+								<?php foreach ( $ticket_categories as $ck => $cl ) : ?>
+									<option value="<?php echo esc_attr( $ck ); ?>"><?php echo esc_html( $cl ); ?></option>
+								<?php endforeach; ?>
+							</select>
+						</label>
+						<label><?php esc_html_e( 'Priority', 'buildingcare-lite' ); ?>
+							<select name="ticket_priority">
+								<?php foreach ( $ticket_priorities as $pk => $pl ) : ?>
+									<option value="<?php echo esc_attr( $pk ); ?>" <?php selected( 'normal', $pk ); ?>><?php echo esc_html( $pl ); ?></option>
+								<?php endforeach; ?>
+							</select>
+						</label>
+						<label><?php esc_html_e( 'Describe the issue', 'buildingcare-lite' ); ?>
+							<textarea name="ticket_description" rows="4"></textarea>
+						</label>
+						<button type="submit" name="bcl_portal_ticket" value="1" class="bcl-p-btn"><?php esc_html_e( 'Submit Request', 'buildingcare-lite' ); ?></button>
+					</form>
+				</div>
+
+				<?php if ( ! empty( $tickets ) ) : ?>
+					<?php foreach ( $tickets as $ticket ) : $tid = (int) $ticket->ID; $tst = bcl_get_meta_string( $tid, 'bc_ticket_status' ); $resp = bcl_get_meta_string( $tid, 'bc_admin_response' ); ?>
+						<div class="bcl-p-row">
+							<div class="bcl-p-row-main">
+								<b><?php echo esc_html( get_the_title( $tid ) ); ?></b>
+								<span class="bcl-p-badge bcl-p-tstatus--<?php echo esc_attr( $tst ); ?>"><?php echo esc_html( $ticket_statuses[ $tst ] ?? $tst ); ?></span>
+							</div>
+							<div class="bcl-p-row-meta">
+								<span><?php echo esc_html( $ticket_categories[ bcl_get_meta_string( $tid, 'bc_ticket_category' ) ] ?? '' ); ?></span>
+								<span><?php echo esc_html( get_the_date( '', $tid ) ); ?></span>
+							</div>
+							<?php if ( '' !== $resp ) : ?>
+								<div class="bcl-p-muted"><strong><?php esc_html_e( 'Response:', 'buildingcare-lite' ); ?></strong> <?php echo esc_html( $resp ); ?></div>
+							<?php endif; ?>
+						</div>
+					<?php endforeach; ?>
+				<?php endif; ?>
+			</section>
+
 			<section id="bcl-p-profile" class="bcl-p-section">
 				<?php if ( isset( $_GET['saved'] ) && 'profile' === sanitize_key( wp_unslash( $_GET['saved'] ) ) ) : ?>
 					<div class="bcl-p-saved"><?php esc_html_e( 'Profile updated.', 'buildingcare-lite' ); ?></div>
@@ -573,6 +776,9 @@ class Tenant_Portal {
 				<div class="bcl-p-kv"><span><?php esc_html_e( 'Service Charge', 'buildingcare-lite' ); ?></span><b><?php echo esc_html( bcl_format_amount( bcl_get_meta_float( $bill_id, 'bc_service_charge_amount' ) ) ); ?></b></div>
 				<div class="bcl-p-kv"><span><?php esc_html_e( 'Previous Due', 'buildingcare-lite' ); ?></span><b><?php echo esc_html( bcl_format_amount( bcl_get_meta_float( $bill_id, 'bc_previous_due_amount' ) ) ); ?></b></div>
 				<div class="bcl-p-kv"><span><?php esc_html_e( 'Late Fee', 'buildingcare-lite' ); ?></span><b><?php echo esc_html( bcl_format_amount( bcl_get_meta_float( $bill_id, 'bc_late_fee_amount' ) ) ); ?></b></div>
+				<?php foreach ( bcl_get_bill_extra_charges( $bill_id ) as $charge ) : ?>
+					<div class="bcl-p-kv"><span><?php echo esc_html( $charge['label'] ); ?></span><b><?php echo esc_html( bcl_format_amount( $charge['amount'] ) ); ?></b></div>
+				<?php endforeach; ?>
 				<div class="bcl-p-kv bcl-p-kv--total"><span><?php esc_html_e( 'Total Payable', 'buildingcare-lite' ); ?></span><b><?php echo esc_html( bcl_format_amount( bcl_get_meta_float( $bill_id, 'bc_total_payable_amount' ) ) ); ?></b></div>
 				<div class="bcl-p-kv"><span><?php esc_html_e( 'Paid', 'buildingcare-lite' ); ?></span><b><?php echo esc_html( bcl_format_amount( bcl_get_meta_float( $bill_id, 'bc_amount_paid' ) ) ); ?></b></div>
 				<div class="bcl-p-kv"><span><?php esc_html_e( 'Remaining', 'buildingcare-lite' ); ?></span><b><?php echo esc_html( bcl_format_amount( bcl_get_meta_float( $bill_id, 'bc_remaining_due' ) ) ); ?></b></div>
