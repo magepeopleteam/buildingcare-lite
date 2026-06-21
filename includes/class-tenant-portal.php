@@ -20,13 +20,15 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class Tenant_Portal {
 
-	private const QUERY = 'bc_portal';
+	private const QUERY        = 'bc_portal';
+	private const FLUSH_OPTION = 'bcl_portal_rewrite_version';
 
 	/**
 	 * Constructor.
 	 */
 	public function __construct() {
-		add_action( 'init', array( $this, 'add_rewrite' ) );
+		add_action( 'init', array( $this, 'add_rewrite' ), 10 );
+		add_action( 'init', array( $this, 'maybe_flush' ), 11 );
 		add_filter( 'query_vars', array( $this, 'query_vars' ) );
 		add_action( 'template_redirect', array( $this, 'maybe_render' ) );
 	}
@@ -36,6 +38,22 @@ class Tenant_Portal {
 	 */
 	public function add_rewrite(): void {
 		add_rewrite_rule( '^tenant/?$', 'index.php?' . self::QUERY . '=1', 'top' );
+	}
+
+	/**
+	 * Self-heal the rewrite rules: flush once per plugin version on the first
+	 * request (admin or front-end) so the /tenant/ route works automatically
+	 * without the admin ever touching Settings → Permalinks. When permalinks
+	 * are "plain", the query-string URL (see url()) is used instead, so the
+	 * portal always works regardless of the site's permalink configuration.
+	 */
+	public function maybe_flush(): void {
+		if ( get_option( self::FLUSH_OPTION ) === BCL_VERSION ) {
+			return;
+		}
+
+		flush_rewrite_rules( false );
+		update_option( self::FLUSH_OPTION, BCL_VERSION );
 	}
 
 	/**
