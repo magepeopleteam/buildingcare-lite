@@ -569,6 +569,10 @@ class Admin_Pages {
 			<h1 class="bcl-app-title">
 				<span class="dashicons dashicons-building"></span>
 				<?php esc_html_e( 'BuildingCare', 'buildingcare-lite' ); ?>
+				<button type="button" id="bcl-install-app" class="button button-secondary bcl-install-btn" hidden>
+					<span class="dashicons dashicons-download"></span>
+					<?php esc_html_e( 'Install app', 'buildingcare-lite' ); ?>
+				</button>
 			</h1>
 
 			<button type="button" class="bcl-menu-toggle" aria-expanded="false" aria-controls="bcl-tabs-nav">
@@ -913,6 +917,19 @@ class Admin_Pages {
 			echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__( 'Record deleted.', 'buildingcare-lite' ) . '</p></div>';
 		}
 
+		if ( isset( $_GET['tenants_new'] ) || isset( $_GET['tenants_linked'] ) ) {
+			$new    = isset( $_GET['tenants_new'] ) ? absint( $_GET['tenants_new'] ) : 0;
+			$linked = isset( $_GET['tenants_linked'] ) ? absint( $_GET['tenants_linked'] ) : 0;
+			echo '<div class="notice notice-success is-dismissible"><p>' . esc_html(
+				sprintf(
+					/* translators: 1: created count, 2: linked count */
+					__( 'Tenant logins: %1$d created, %2$d linked to existing users.', 'buildingcare-lite' ),
+					$new,
+					$linked
+				)
+			) . '</p></div>';
+		}
+
 		if ( ! isset( $_GET['bills_created'] ) && ! isset( $_GET['recurring_created'] ) ) {
 			return;
 		}
@@ -968,6 +985,22 @@ class Admin_Pages {
 		?>
 		<div class="bcl-tab-body">
 			<p class="bcl-subtitle"><?php echo esc_html( sprintf( __( 'Overview for %s', 'buildingcare-lite' ), $stats['month'] ) ); ?></p>
+
+			<div class="bcl-portal-note">
+				<span class="dashicons dashicons-smartphone"></span>
+				<span class="bcl-portal-note__text">
+					<?php esc_html_e( 'Tenant portal:', 'buildingcare-lite' ); ?>
+					<a href="<?php echo esc_url( Tenant_Portal::url() ); ?>" target="_blank" rel="noopener"><?php echo esc_html( Tenant_Portal::url() ); ?></a>
+					<?php esc_html_e( '— residents with an email get an account automatically and can log in here.', 'buildingcare-lite' ); ?>
+				</span>
+				<?php if ( bcl_current_user_can( 'bc_manage_residents' ) ) : ?>
+					<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="bcl-portal-note__action">
+						<input type="hidden" name="action" value="bcl_provision_tenants">
+						<?php wp_nonce_field( 'bcl_provision_tenants' ); ?>
+						<button type="submit" class="button button-secondary"><?php esc_html_e( 'Create logins for all residents', 'buildingcare-lite' ); ?></button>
+					</form>
+				<?php endif; ?>
+			</div>
 
 			<div class="bcl-dashboard-grid">
 				<div class="bcl-card bcl-card-income">

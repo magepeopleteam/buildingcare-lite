@@ -49,8 +49,14 @@ class Roles {
 			'read'               => true,
 		);
 
+		$tenant_caps = array(
+			'read'          => true,
+			'bc_view_portal' => true,
+		);
+
 		$this->add_role_caps( 'building_admin', __( 'Building Admin', 'buildingcare-lite' ), $admin_caps );
 		$this->add_role_caps( 'building_manager', __( 'Manager', 'buildingcare-lite' ), $manager_caps );
+		$this->add_role_caps( 'building_tenant', __( 'Building Tenant', 'buildingcare-lite' ), $tenant_caps );
 
 		$administrator = get_role( 'administrator' );
 		if ( $administrator ) {

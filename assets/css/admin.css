@@ -1751,6 +1751,64 @@ body.bcl-admin .bcl-page-settings .bcl-settings-actions .submit {
 	color: #2271b1;
 }
 
+.bcl-portal-note {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	background: #f0f6fc;
+	border: 1px solid #c5d9ed;
+	border-radius: 8px;
+	padding: 10px 14px;
+	margin: 0 0 18px;
+	font-size: 13px;
+	color: #1d2327;
+}
+
+.bcl-portal-note .dashicons {
+	color: #2271b1;
+	flex: 0 0 auto;
+}
+
+.bcl-portal-note__text {
+	flex: 1 1 auto;
+	min-width: 200px;
+}
+
+.bcl-portal-note__action {
+	flex: 0 0 auto;
+	margin: 0;
+}
+
+.bcl-portal-note a {
+	font-weight: 600;
+}
+
+@media screen and (max-width: 600px) {
+	.bcl-portal-note {
+		flex-wrap: wrap;
+	}
+}
+
+.bcl-install-btn {
+	display: inline-flex !important;
+	align-items: center;
+	gap: 4px;
+	margin-left: auto !important;
+	font-size: 13px !important;
+	height: auto !important;
+}
+
+.bcl-install-btn .dashicons {
+	font-size: 16px !important;
+	width: 16px !important;
+	height: 16px !important;
+	color: inherit !important;
+}
+
+.bcl-app .bcl-app-title {
+	flex-wrap: wrap;
+}
+
 .bcl-tabs {
 	display: flex;
 	flex-wrap: wrap;
