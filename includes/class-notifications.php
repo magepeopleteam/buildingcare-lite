@@ -146,7 +146,7 @@ class Notifications {
 			)
 		);
 
-		if ( function_exists( 'bcl_prime_post_metas' ) && ! empty( $bills ) ) {
+		if ( function_exists( __NAMESPACE__ . '\\bcl_prime_post_metas' ) && ! empty( $bills ) ) {
 			bcl_prime_post_metas( wp_list_pluck( $bills, 'ID' ) );
 		}
 

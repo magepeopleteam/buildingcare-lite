@@ -215,7 +215,7 @@ class Dashboard {
 			)
 		);
 
-		if ( function_exists( 'bcl_prime_post_metas' ) && ! empty( $query->posts ) ) {
+		if ( function_exists( __NAMESPACE__ . '\\bcl_prime_post_metas' ) && ! empty( $query->posts ) ) {
 			bcl_prime_post_metas( wp_list_pluck( $query->posts, 'ID' ) );
 		}
 		?>

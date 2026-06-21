@@ -85,7 +85,7 @@ class Reports {
 		}
 
 		// Use fast direct SQL when possible (legacy data without a ledger).
-		if ( function_exists( 'bcl_sum_meta_between_dates' ) ) {
+		if ( function_exists( __NAMESPACE__ . '\\bcl_sum_meta_between_dates' ) ) {
 			return bcl_sum_meta_between_dates( 'bc_bill', 'bc_amount_paid', 'bc_payment_date', $start_date, $end_date );
 		}
 
@@ -119,7 +119,7 @@ class Reports {
 	 * Sum all outstanding dues across bills.
 	 */
 	public function sum_outstanding_dues(): float {
-		if ( function_exists( 'bcl_sum_outstanding_dues_fast' ) ) {
+		if ( function_exists( __NAMESPACE__ . '\\bcl_sum_outstanding_dues_fast' ) ) {
 			return bcl_sum_outstanding_dues_fast();
 		}
 
@@ -153,7 +153,7 @@ class Reports {
 	 * @return array{unpaid_flats:int, collection_percent:float}
 	 */
 	public function get_bill_stats( string $month ): array {
-		if ( function_exists( 'bcl_get_bill_stats_fast' ) ) {
+		if ( function_exists( __NAMESPACE__ . '\\bcl_get_bill_stats_fast' ) ) {
 			$fast = bcl_get_bill_stats_fast( $month );
 			return array(
 				'unpaid_flats'       => $fast['unpaid_flats'],
@@ -223,7 +223,7 @@ class Reports {
 			)
 		);
 
-		if ( function_exists( 'bcl_prime_post_metas' ) ) {
+		if ( function_exists( __NAMESPACE__ . '\\bcl_prime_post_metas' ) ) {
 			bcl_prime_post_metas( wp_list_pluck( $payments, 'ID' ) );
 		}
 
@@ -248,7 +248,7 @@ class Reports {
 			)
 		);
 
-		if ( function_exists( 'bcl_prime_post_metas' ) ) {
+		if ( function_exists( __NAMESPACE__ . '\\bcl_prime_post_metas' ) ) {
 			bcl_prime_post_metas( wp_list_pluck( $expenses, 'ID' ) );
 		}
 
@@ -340,7 +340,7 @@ class Reports {
 		);
 
 		// Prime all metas for these bills in 1 query (big win for column access).
-		if ( function_exists( 'bcl_prime_post_metas' ) ) {
+		if ( function_exists( __NAMESPACE__ . '\\bcl_prime_post_metas' ) ) {
 			bcl_prime_post_metas( wp_list_pluck( $bills, 'ID' ) );
 		}
 
@@ -373,7 +373,7 @@ class Reports {
 			)
 		);
 
-		if ( function_exists( 'bcl_prime_post_metas' ) ) {
+		if ( function_exists( __NAMESPACE__ . '\\bcl_prime_post_metas' ) ) {
 			bcl_prime_post_metas( wp_list_pluck( $flats, 'ID' ) );
 		}
 
@@ -411,7 +411,7 @@ class Reports {
 			)
 		);
 
-		if ( function_exists( 'bcl_prime_post_metas' ) ) {
+		if ( function_exists( __NAMESPACE__ . '\\bcl_prime_post_metas' ) ) {
 			bcl_prime_post_metas( wp_list_pluck( $residents, 'ID' ) );
 		}
 
@@ -464,7 +464,7 @@ class Reports {
 			)
 		);
 
-		if ( function_exists( 'bcl_prime_post_metas' ) ) {
+		if ( function_exists( __NAMESPACE__ . '\\bcl_prime_post_metas' ) ) {
 			bcl_prime_post_metas( wp_list_pluck( $bills, 'ID' ) );
 		}
 

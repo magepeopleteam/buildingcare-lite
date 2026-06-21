@@ -196,7 +196,7 @@ class Bills_List_Table extends \WP_List_Table {
 		$this->items = $query->posts;
 
 		// Prime metas for the current page of bills (reduces dozens of get_post_meta calls).
-		if ( function_exists( 'bcl_prime_post_metas' ) && ! empty( $this->items ) ) {
+		if ( function_exists( __NAMESPACE__ . '\\bcl_prime_post_metas' ) && ! empty( $this->items ) ) {
 			bcl_prime_post_metas( wp_list_pluck( $this->items, 'ID' ) );
 		}
 
@@ -387,7 +387,7 @@ class Recurring_Payments_List_Table extends \WP_List_Table {
 
 		$this->items = $query->posts;
 
-		if ( function_exists( 'bcl_prime_post_metas' ) && ! empty( $this->items ) ) {
+		if ( function_exists( __NAMESPACE__ . '\\bcl_prime_post_metas' ) && ! empty( $this->items ) ) {
 			bcl_prime_post_metas( wp_list_pluck( $this->items, 'ID' ) );
 		}
 

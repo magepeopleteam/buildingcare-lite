@@ -211,7 +211,7 @@ class Expenses {
 	 * Sum expenses in a date range.
 	 */
 	public function sum_expenses( string $start_date, string $end_date, int $building_id = 0 ): float {
-		if ( function_exists( 'bcl_sum_meta_between_dates' ) && 0 === $building_id ) {
+		if ( function_exists( __NAMESPACE__ . '\\bcl_sum_meta_between_dates' ) && 0 === $building_id ) {
 			return bcl_sum_meta_between_dates( 'bc_expense', 'bc_amount', 'bc_expense_date', $start_date, $end_date );
 		}
 

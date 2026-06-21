@@ -345,6 +345,11 @@ class Rest_Api {
 	 * @return array<int, array<string, mixed>>
 	 */
 	private function format_posts( array $posts ): array {
+		// Prime all post metas in one query to avoid an N+1 lookup below.
+		if ( function_exists( __NAMESPACE__ . '\\bcl_prime_post_metas' ) && ! empty( $posts ) ) {
+			bcl_prime_post_metas( wp_list_pluck( $posts, 'ID' ) );
+		}
+
 		$data = array();
 		foreach ( $posts as $post ) {
 			$meta = get_post_meta( $post->ID );

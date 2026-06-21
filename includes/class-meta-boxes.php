@@ -266,7 +266,7 @@ class Meta_Boxes {
 		update_post_meta( $post_id, 'bc_total_floors', absint( $_POST['bc_total_floors'] ?? 0 ) );
 		update_post_meta( $post_id, 'bc_status', sanitize_key( $_POST['bc_status'] ?? 'active' ) );
 		bcl_clear_dashboard_cache();
-		if ( function_exists( 'bcl_invalidate_options_caches' ) ) {
+		if ( function_exists( __NAMESPACE__ . '\\bcl_invalidate_options_caches' ) ) {
 			bcl_invalidate_options_caches();
 		}
 	}
@@ -289,7 +289,7 @@ class Meta_Boxes {
 		update_post_meta( $post_id, 'bc_monthly_service_charge', round( (float) ( $_POST['bc_monthly_service_charge'] ?? 0 ), 2 ) );
 		update_post_meta( $post_id, 'bc_occupancy_status', sanitize_key( $_POST['bc_occupancy_status'] ?? 'vacant' ) );
 		bcl_clear_dashboard_cache();
-		if ( function_exists( 'bcl_invalidate_options_caches' ) ) {
+		if ( function_exists( __NAMESPACE__ . '\\bcl_invalidate_options_caches' ) ) {
 			bcl_invalidate_options_caches();
 		}
 	}

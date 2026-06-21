@@ -745,7 +745,7 @@ class Post_Types {
 	 */
 	public function maybe_invalidate_caches_on_save( int $post_id, \WP_Post $post ): void {
 		if ( in_array( $post->post_type, array( 'bc_building', 'bc_flat', 'bc_resident' ), true ) ) {
-			if ( function_exists( 'bcl_invalidate_options_caches' ) ) {
+			if ( function_exists( __NAMESPACE__ . '\\bcl_invalidate_options_caches' ) ) {
 				bcl_invalidate_options_caches();
 			}
 			bcl_clear_dashboard_cache();
@@ -755,7 +755,7 @@ class Post_Types {
 	public function maybe_invalidate_caches_on_delete( int $post_id ): void {
 		$post = get_post( $post_id );
 		if ( $post && in_array( $post->post_type, array( 'bc_building', 'bc_flat', 'bc_resident' ), true ) ) {
-			if ( function_exists( 'bcl_invalidate_options_caches' ) ) {
+			if ( function_exists( __NAMESPACE__ . '\\bcl_invalidate_options_caches' ) ) {
 				bcl_invalidate_options_caches();
 			}
 			bcl_clear_dashboard_cache();

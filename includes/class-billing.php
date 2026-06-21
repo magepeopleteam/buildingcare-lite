@@ -53,7 +53,7 @@ class Billing {
 				"SELECT DISTINCT pm.meta_value FROM {$wpdb->posts} p
 				 INNER JOIN {$wpdb->postmeta} pm ON pm.post_id = p.ID AND pm.meta_key = 'bc_flat_id'
 				 INNER JOIN {$wpdb->postmeta} pmm ON pmm.post_id = p.ID AND pmm.meta_key = 'bc_billing_month'
-				 WHERE p.post_type = 'bc_bill' AND p.post_status = 'any'
+				 WHERE p.post_type = 'bc_bill' AND p.post_status NOT IN ( 'trash', 'auto-draft' )
 				   AND pmm.meta_value = %s",
 				$billing_month
 			)
@@ -102,7 +102,7 @@ class Billing {
 				"SELECT 1 FROM {$wpdb->posts} p
 				 INNER JOIN {$wpdb->postmeta} pmf ON pmf.post_id = p.ID AND pmf.meta_key = 'bc_flat_id'
 				 INNER JOIN {$wpdb->postmeta} pmm ON pmm.post_id = p.ID AND pmm.meta_key = 'bc_billing_month'
-				 WHERE p.post_type = 'bc_bill' AND p.post_status = 'any'
+				 WHERE p.post_type = 'bc_bill' AND p.post_status NOT IN ( 'trash', 'auto-draft' )
 				   AND pmf.meta_value = %d AND pmm.meta_value = %s
 				 LIMIT 1",
 				$flat_id,
